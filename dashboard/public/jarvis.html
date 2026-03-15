@@ -183,6 +183,9 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--s
 @keyframes tickerScroll{0%{transform:translateY(0)}100%{transform:translateY(-50%)}}
 .tk-card{padding:8px 10px;border-bottom:1px solid rgba(255,255,255,0.03);cursor:default;transition:background 0.2s}
 .tk-card.clickable{cursor:pointer}
+.tk-card .tk-link{display:none;margin-left:auto;font-size:10px;color:var(--dim);transition:color 0.2s}
+.tk-card.clickable .tk-link{display:inline-flex;align-items:center}
+.tk-card.clickable:hover .tk-link{color:var(--accent)}
 .tk-card:hover{background:rgba(100,240,200,0.04)}
 .tk-card.urgent{border-left:2px solid var(--danger)}
 .tk-src{font-family:var(--mono);font-size:8px;letter-spacing:0.08em;text-transform:uppercase;padding:1px 5px;border:1px solid;display:inline-block;margin-right:4px}
@@ -817,7 +820,7 @@ function renderLower(){
     const sc = srcClass(n.source);
     const age = n.timestamp ? getAge(n.timestamp) : '';
     const urlAttr = n.url ? ` data-url="${String(n.url).replace(/&/g,'&amp;').replace(/"/g,'&quot;')}"` : '';
-    return `<div class="tk-card ${n.urgent?'urgent':''} ${n.url?'clickable':''}"${urlAttr}><span class="tk-src ${sc}">${(n.source||'NEWS').substring(0,12)}</span><span class="tk-time">${age}</span><div class="tk-head">${cleanText(n.headline||'')}</div></div>`;
+    return `<div class="tk-card ${n.urgent?'urgent':''} ${n.url?'clickable':''}"${urlAttr}><span class="tk-src ${sc}">${(n.source||'NEWS').substring(0,12)}</span><span class="tk-time">${age}</span><div class="tk-head">${cleanText(n.headline||'')}</div>${n.url?'<span class="tk-link">&#8599;</span>':''}</div>`;
   }).join('');
   const tickerDuration = Math.max(20, feed.length * 2.5);
 
