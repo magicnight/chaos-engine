@@ -34,8 +34,6 @@ AGENTS.md
 *.log
 npm-debug.log*
 
-# Docker
-.dockerignore
 
 # Package lock (optional — remove this line if you want deterministic installs)
 # package-lock.json

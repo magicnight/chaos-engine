@@ -15,6 +15,11 @@
 [![Sources](https://img.shields.io/badge/OSINT%20sources-27-cyan)](#data-sources-27)
 [![Docker](https://img.shields.io/badge/docker-ready-blue?logo=docker)](#docker)
 
+**Enter The Signal Network**
+
+[![Signal Wire](https://img.shields.io/badge/Signal%20Wire-%40crucixmonitor-111111?style=for-the-badge&logo=x&logoColor=white)](https://x.com/crucixmonitor)
+[![Ops Room](https://img.shields.io/badge/Ops%20Room-Discord-5865F2?style=for-the-badge&logo=discord&logoColor=white)](https://discord.gg/ChVy7SF4)
+
 ![Crucix Dashboard](docs/dashboard.png)
 
 <details>
@@ -42,6 +47,13 @@ Hook it up to an LLM and it becomes a **two-way intelligence assistant** — pus
 Try the live demo first at [https://www.crucix.live/](https://www.crucix.live/), then clone the repo when you want the full local stack.
 
 No cloud. No telemetry. No subscriptions. Just `node server.mjs` and you're running.
+
+## Token / Asset Warning
+
+> [!WARNING]
+> **Crucix has not launched any official token, coin, NFT, airdrop, presale, or other blockchain-based asset.**
+> Any token or digital asset using the Crucix name, logo, or branding is not affiliated with or endorsed by Crucix.
+> Do not buy it, promote it, connect a wallet to claim it, sign transactions, or send funds based on third-party posts, DMs, or websites.
 
 ---
 
@@ -113,6 +125,22 @@ A self-contained Jarvis-style HUD with:
 - **Space watch** — CelesTrak satellite tracking: recent launches, ISS, military constellations, Starlink/OneWeb counts
 - **Leverageable ideas** — AI-generated trade ideas (with LLM) or signal-correlated ideas (without)
 
+### Performance Modes
+The `PERF HIGH` / `PERF LOW` button in the top bar only changes rendering behavior - it does **not** remove data sources or reduce sweep coverage.
+
+When you switch to **PERF LOW**, the dashboard:
+- Disables decorative background effects such as the radial/grid overlays and scanlines
+- Removes expensive blur/backdrop-filter effects on panels and overlays
+- Stops non-essential animations like the logo ring blink, conflict rings, and corridor flow effects
+- Disables globe auto-rotation and turns off animated flight-arc dashes
+- Converts the horizontal news ticker and OSINT stream into static, scrollable lists instead of continuously animated marquees
+
+Mobile-specific behavior:
+- On mobile, `PERF LOW` also forces the dashboard into **flat map mode** if you are currently on the globe
+- Future mobile loads will continue to start flat while low-perf mode is enabled
+
+The preference is saved in browser local storage, so the UI will remember your last setting.
+
 ### Auto-Refresh
 The server runs a sweep cycle every 15 minutes (configurable). Each cycle:
 1. Queries all 27 sources in parallel (~30s)
@@ -161,7 +189,7 @@ Alerts are delivered as rich embeds with color-coded sidebars: red for FLASH, ye
 Connect any of 6 LLM providers for enhanced analysis:
 - **AI trade ideas** — quantitative analyst producing 5-8 actionable ideas citing specific data
 - **Smarter alert evaluation** — LLM classifies signals into FLASH/PRIORITY/ROUTINE tiers with cross-domain correlation and confidence scoring
-- Providers: Anthropic Claude, OpenAI, Google Gemini, OpenRouter (Unified API), OpenAI Codex (ChatGPT subscription), MiniMax
+- Providers: Anthropic Claude, OpenAI, Google Gemini, OpenRouter (Unified API), OpenAI Codex (ChatGPT subscription), MiniMax, Mistral
 - Graceful fallback — when LLM is unavailable, a rule-based engine takes over alert evaluation. LLM failures never crash the sweep cycle.
 
 ---
@@ -194,7 +222,7 @@ These three unlock the most valuable economic and satellite data. Each takes abo
 
 ### LLM Provider (optional, for AI-enhanced ideas)
 
-Set `LLM_PROVIDER` to one of: `anthropic`, `openai`, `gemini`, `codex`, `openrouter`, `minimax`
+Set `LLM_PROVIDER` to one of: `anthropic`, `openai`, `gemini`, `codex`, `openrouter`, `minimax`, `mistral`
 
 | Provider | Key Required | Default Model |
 |----------|-------------|---------------|
@@ -204,6 +232,7 @@ Set `LLM_PROVIDER` to one of: `anthropic`, `openai`, `gemini`, `codex`, `openrou
 | `openrouter` | `LLM_API_KEY` | openrouter/auto |
 | `codex` | None (uses `~/.codex/auth.json`) | gpt-5.3-codex |
 | `minimax` | `LLM_API_KEY` | MiniMax-M2.5 |
+| `mistral` | `LLM_API_KEY` | mistral-large-latest |
 
 For Codex, run `npx @openai/codex login` to authenticate via your ChatGPT subscription.
 
@@ -281,6 +310,7 @@ crucix/
 │   │   ├── openrouter.mjs     # OpenRouter (Unified API)
 │   │   ├── codex.mjs          # Codex (ChatGPT subscription)
 │   │   ├── minimax.mjs        # MiniMax (M2.5, 204K context)
+│   │   ├── mistral.mjs        # Mistral AI
 │   │   ├── ideas.mjs          # LLM-powered trade idea generation
 │   │   └── index.mjs          # Factory: createLLMProvider()
 │   ├── delta/                 # Change tracking between sweeps
@@ -382,7 +412,7 @@ All settings are in `.env` with sensible defaults:
 |----------|---------|-------------|
 | `PORT` | `3117` | Dashboard server port |
 | `REFRESH_INTERVAL_MINUTES` | `15` | Auto-refresh interval |
-| `LLM_PROVIDER` | disabled | `anthropic`, `openai`, `gemini`, `codex`, `openrouter`, or `minimax` |
+| `LLM_PROVIDER` | disabled | `anthropic`, `openai`, `gemini`, `codex`, `openrouter`, `minimax`, or `mistral` |
 | `LLM_API_KEY` | — | API key (not needed for codex) |
 | `LLM_MODEL` | per-provider default | Override model selection |
 | `TELEGRAM_BOT_TOKEN` | disabled | For Telegram alerts + bot commands |
@@ -462,6 +492,8 @@ This is normal — the first sweep takes 30–60 seconds to query all 27 sources
 ### Some sources show errors
 
 Expected behavior. Sources that require API keys will return structured errors if the key isn't set. The rest of the sweep continues normally. Check the Source Integrity section in the dashboard (or the server logs) to see which sources failed and why. The 3 most impactful free keys to add are `FRED_API_KEY`, `FIRMS_MAP_KEY`, and `EIA_API_KEY`.
+
+OpenSky can also return `HTTP 429` when its public hotspots are queried too aggressively. Crucix does not try to evade that limit. Instead, it surfaces the throttle/error in source health and preserves the most recent non-empty air traffic snapshot from `runs/` so the dashboard flight layer does not suddenly go blank on a throttled sweep.
 
 ### Telegram bot not responding to commands
 
