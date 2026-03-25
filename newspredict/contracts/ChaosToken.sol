@@ -21,7 +21,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 contract ChaosToken is ERC20, ERC20Burnable, Ownable {
     uint8 private constant _decimals = 18;
 
-    constructor(uint256 initialSupply) ERC20("CHAOS", "CHAOS") Ownable(msg.sender) {
+    constructor(uint256 initialSupply) ERC20("C.H.A.O.S.", "CHAOS") Ownable(msg.sender) {
         _mint(msg.sender, initialSupply * 10 ** _decimals);
     }
 
