@@ -17,7 +17,14 @@ import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
  * - Pro-rata payout from deposited pool — contract always solvent
  * - Full event logging for off-chain indexing
  * - Market duration capped at MAX_MARKET_DURATION
- * - Existence checks on all market operations
+ * - Per-market and per-tx share caps prevent overflow
+ * - Emergency withdrawal for stuck tokens
+ *
+ * Security notes:
+ * - Owner is a single EOA; for production, transfer to TimelockController or multisig
+ * - Token pause() blocks claimWinnings — document this to users
+ * - Pro-rata integer division may leave dust (< 1 wei per claimer)
+ * - MEV/sandwich attacks mitigated by maxCost/minProceeds slippage params
  *
  * Part of the CHAOS Engine — Connected Human-Augmented OSINT Suite
  * https://github.com/magicnight/chaos-engine
@@ -30,6 +37,7 @@ contract ChaosPredictionMarket is Ownable, ReentrancyGuard {
     uint256 public constant MAX_QUESTION_LENGTH = 500;
     uint256 public constant MAX_MARKET_DURATION = 365 days;
     uint256 public constant MAX_SHARES_PER_TX = 1_000_000 * 10 ** 18;
+    uint256 public constant MAX_TOTAL_SHARES = 100_000_000 * 10 ** 18; // per side per market
 
     // LMSR liquidity parameter (scaled by 1e18 for fixed-point math)
     uint256 public constant LMSR_B = 100 * 10 ** 18;
@@ -69,6 +77,7 @@ contract ChaosPredictionMarket is Ownable, ReentrancyGuard {
     event WinningsClaimed(uint256 indexed marketId, address indexed trader, uint256 payout);
     event MarketCancelled(uint256 indexed marketId);
     event CreatorApprovalChanged(address indexed creator, bool approved);
+    event EmergencyWithdraw(address indexed token_, uint256 amount, address indexed to);
 
     constructor(address _token) Ownable(msg.sender) {
         require(_token != address(0), "Invalid token address");
@@ -96,19 +105,17 @@ contract ChaosPredictionMarket is Ownable, ReentrancyGuard {
     /**
      * @dev Approximate exp(x) for x in fixed-point (scaled by SCALE).
      * Uses range reduction + Taylor 12 terms for high precision.
-     * exp(x) = exp(k * ln2) * exp(r) where r = x - k * ln2, |r| < ln2/2
+     * exp(x) = 2^k * exp(r) where r = x - k * ln2, |r| < ln2
      */
     function _expApprox(int256 x) internal pure returns (uint256) {
-        // Clamp extreme values to prevent overflow/underflow
         if (x > 40 * int256(SCALE)) return type(uint256).max / 2;
         if (x < -40 * int256(SCALE)) return 1;
 
-        // Range reduction: x = k * ln2 + r, |r| <= ln2/2
         int256 ln2 = 693147180559945309; // ln(2) * 1e18
         int256 k = x / ln2;
         int256 r = x - k * ln2;
 
-        // Taylor series for exp(r) with 12 terms (accurate for |r| < ln2)
+        // Taylor series for exp(r) with 12 terms
         int256 s = int256(SCALE);
         int256 term = s;
         int256 result = s;
@@ -120,14 +127,11 @@ contract ChaosPredictionMarket is Ownable, ReentrancyGuard {
 
         if (result <= 0) return 1;
 
-        // Apply 2^k scaling
         uint256 expR = uint256(result);
         if (k >= 0) {
             uint256 shift = uint256(k);
-            if (shift > 80) return type(uint256).max / 2; // overflow guard
+            if (shift > 80) return type(uint256).max / 2;
             expR = expR << shift;
-            // Compensate for 2^k vs exp(k*ln2) using: 2^k / exp(k*ln2) ≈ 1
-            // Since we used exact ln2, exp(k*ln2) = 2^k, so this is precise
         } else {
             uint256 shift = uint256(-k);
             if (shift > 80) return 1;
@@ -139,10 +143,15 @@ contract ChaosPredictionMarket is Ownable, ReentrancyGuard {
 
     /**
      * @dev LMSR cost function: C(q) = b * ln(exp(qYes/b) + exp(qNo/b))
-     * Returns the cost function value (scaled by SCALE).
+     * Fast-path: when both shares are 0, returns b * ln(2).
      */
     function _lmsrCostFunction(uint256 qYes, uint256 qNo) internal pure returns (uint256) {
-        // exp(qYes / b) and exp(qNo / b) in fixed-point
+        // Fast path: initial state avoids expensive exp/ln
+        if (qYes == 0 && qNo == 0) {
+            // b * ln(2) = LMSR_B * 0.693... = 100e18 * 693147180559945309 / 1e18
+            return (LMSR_B * 693147180559945309) / SCALE;
+        }
+
         int256 exponentYes = int256((qYes * SCALE) / LMSR_B);
         int256 exponentNo = int256((qNo * SCALE) / LMSR_B);
 
@@ -150,10 +159,6 @@ contract ChaosPredictionMarket is Ownable, ReentrancyGuard {
         uint256 expNo = _expApprox(exponentNo);
 
         uint256 sum = expYes + expNo;
-
-        // ln(sum) approximation using: ln(x) ≈ iterative method
-        // For simplicity: ln(x) = ln(SCALE) + (x - SCALE) / x (first-order approx for x near SCALE)
-        // Better: use a multi-step log approximation
         uint256 logResult = _lnApprox(sum);
 
         return (LMSR_B * logResult) / SCALE;
@@ -161,19 +166,18 @@ contract ChaosPredictionMarket is Ownable, ReentrancyGuard {
 
     /**
      * @dev Approximate ln(x) where x is scaled by SCALE.
-     * Uses the identity: ln(x) = 2 * artanh((x-1)/(x+1)) with Padé approximation.
+     * Range reduction to [SCALE, 2*SCALE) then artanh series.
+     * Loop bounded to 128 iterations to prevent gas exhaustion.
      */
     function _lnApprox(uint256 x) internal pure returns (uint256) {
         require(x > 0, "ln(0) undefined");
         if (x == SCALE) return 0;
 
-        // Normalize: find k such that x = 2^k * m where m in [1, 2)
         uint256 result = 0;
         uint256 y = x;
-        uint256 ln2 = 693147180559945309; // ln(2) * 1e18
+        uint256 ln2 = 693147180559945309;
 
-        // Reduce to range [SCALE, 2*SCALE) with bounded iterations
-        uint256 maxIter = 128; // covers up to 2^128 which is more than enough
+        uint256 maxIter = 128;
         for (uint256 i = 0; i < maxIter && y >= 2 * SCALE; i++) {
             y = y / 2;
             result += ln2;
@@ -187,12 +191,10 @@ contract ChaosPredictionMarket is Ownable, ReentrancyGuard {
             }
         }
 
-        // Now y is in [SCALE, 2*SCALE). Use artanh series for ln(y/SCALE).
-        // t = (y - SCALE) / (y + SCALE)
+        // artanh series: ln(y/SCALE) = 2 * (t + t^3/3 + t^5/5 + t^7/7)
         uint256 t = ((y - SCALE) * SCALE) / (y + SCALE);
         uint256 t2 = (t * t) / SCALE;
 
-        // ln(y) ≈ 2 * (t + t^3/3 + t^5/5)
         uint256 term = t;
         uint256 series = term;
         term = (term * t2) / SCALE;
@@ -208,7 +210,6 @@ contract ChaosPredictionMarket is Ownable, ReentrancyGuard {
 
     /**
      * @dev Calculate the cost to buy `deltaShares` on `side`.
-     * Cost = C(q_after) - C(q_before)
      */
     function calculateBuyCost(
         uint256 marketId,
@@ -227,7 +228,6 @@ contract ChaosPredictionMarket is Ownable, ReentrancyGuard {
 
     /**
      * @dev Calculate proceeds from selling `deltaShares` on `side`.
-     * Proceeds = C(q_before) - C(q_after)
      */
     function calculateSellProceeds(
         uint256 marketId,
@@ -236,7 +236,6 @@ contract ChaosPredictionMarket is Ownable, ReentrancyGuard {
     ) public view marketExists(marketId) returns (uint256) {
         Market storage m = markets[marketId];
 
-        // Guard against underflow
         if (side == Side.Yes) {
             require(m.yesShares >= deltaShares, "Exceeds total YES shares");
         } else {
@@ -262,7 +261,6 @@ contract ChaosPredictionMarket is Ownable, ReentrancyGuard {
         int256 scaled = (diff * int256(SCALE)) / int256(LMSR_B);
 
         uint256 expVal = _expApprox(scaled);
-        // price = exp(diff/b) / (1 + exp(diff/b)) = expVal / (SCALE + expVal)
         return (expVal * SCALE) / (SCALE + expVal);
     }
 
@@ -325,6 +323,37 @@ contract ChaosPredictionMarket is Ownable, ReentrancyGuard {
         emit MarketCancelled(marketId);
     }
 
+    /**
+     * @notice Emergency: withdraw tokens accidentally sent to this contract.
+     * @dev Cannot withdraw the primary market token while any market has deposits,
+     *      to prevent rug-pulling active markets.
+     */
+    function emergencyWithdraw(address tokenAddr, uint256 amount, address to) external onlyOwner {
+        require(to != address(0), "Invalid recipient");
+        // If withdrawing the market token, only allow excess beyond all deposits
+        if (tokenAddr == address(token)) {
+            uint256 contractBalance = token.balanceOf(address(this));
+            uint256 committed = _totalCommittedTokens();
+            require(amount <= contractBalance - committed, "Cannot withdraw committed funds");
+        }
+        IERC20(tokenAddr).safeTransfer(to, amount);
+        emit EmergencyWithdraw(tokenAddr, amount, to);
+    }
+
+    /**
+     * @dev Sum of totalDeposited across all non-finalized markets.
+     */
+    function _totalCommittedTokens() internal view returns (uint256 total) {
+        for (uint256 i = 0; i < marketCount; i++) {
+            MarketStatus s = markets[i].status;
+            if (s == MarketStatus.Open || s == MarketStatus.Closed ||
+                s == MarketStatus.ResolvedYes || s == MarketStatus.ResolvedNo ||
+                s == MarketStatus.Cancelled) {
+                total += markets[i].totalDeposited;
+            }
+        }
+    }
+
     // -----------------------------------------------------------------------
     // Trading (on-chain LMSR pricing)
     // -----------------------------------------------------------------------
@@ -343,15 +372,19 @@ contract ChaosPredictionMarket is Ownable, ReentrancyGuard {
         require(block.timestamp < market.closeTime, "Market closed");
         require(shares > 0 && shares <= MAX_SHARES_PER_TX, "Invalid share amount");
 
-        // Calculate cost using on-chain LMSR
+        // Enforce per-market total shares cap
+        if (side == Side.Yes) {
+            require(market.yesShares + shares <= MAX_TOTAL_SHARES, "Exceeds market YES share cap");
+        } else {
+            require(market.noShares + shares <= MAX_TOTAL_SHARES, "Exceeds market NO share cap");
+        }
+
         uint256 cost = calculateBuyCost(marketId, side, shares);
         require(cost > 0, "Cost must be > 0");
         require(cost <= maxCost, "Exceeds max cost (slippage)");
 
-        // Transfer exact cost
         token.safeTransferFrom(msg.sender, address(this), cost);
 
-        // Update market state
         if (side == Side.Yes) {
             market.yesShares += shares;
         } else {
@@ -359,7 +392,6 @@ contract ChaosPredictionMarket is Ownable, ReentrancyGuard {
         }
         market.totalDeposited += cost;
 
-        // Update position
         Position storage pos = positions[marketId][msg.sender];
         if (side == Side.Yes) {
             pos.yesShares += shares;
@@ -392,12 +424,10 @@ contract ChaosPredictionMarket is Ownable, ReentrancyGuard {
             require(pos.noShares >= shares, "Insufficient NO shares");
         }
 
-        // Calculate proceeds using on-chain LMSR
         uint256 proceeds = calculateSellProceeds(marketId, side, shares);
         require(proceeds >= minProceeds, "Below min proceeds (slippage)");
         require(proceeds <= market.totalDeposited, "Insufficient market liquidity");
 
-        // Update market state
         if (side == Side.Yes) {
             market.yesShares -= shares;
             pos.yesShares -= shares;
@@ -407,7 +437,6 @@ contract ChaosPredictionMarket is Ownable, ReentrancyGuard {
         }
         market.totalDeposited -= proceeds;
 
-        // Transfer proceeds to seller
         token.safeTransfer(msg.sender, proceeds);
 
         emit SharesSold(marketId, msg.sender, side, shares, proceeds);
@@ -419,6 +448,8 @@ contract ChaosPredictionMarket is Ownable, ReentrancyGuard {
 
     /**
      * @notice Claim winnings after resolution. Payout is pro-rata from totalDeposited.
+     * @dev Integer division may leave dust (< 1 wei per claimer). This is by design —
+     *      the alternative (tracking remaining pool) adds complexity and gas.
      */
     function claimWinnings(uint256 marketId) external nonReentrant marketExists(marketId) {
         Market storage market = markets[marketId];
@@ -429,14 +460,12 @@ contract ChaosPredictionMarket is Ownable, ReentrancyGuard {
 
         if (market.status == MarketStatus.ResolvedYes) {
             require(pos.yesShares > 0, "No winning shares");
-            // Pro-rata: user's YES shares / total YES shares * totalDeposited
             payout = (pos.yesShares * market.totalDeposited) / market.yesShares;
         } else if (market.status == MarketStatus.ResolvedNo) {
             require(pos.noShares > 0, "No winning shares");
             payout = (pos.noShares * market.totalDeposited) / market.noShares;
         } else if (market.status == MarketStatus.Cancelled) {
             require(pos.totalCost > 0, "Nothing to refund");
-            // Cap refund at remaining pool to handle post-sell scenarios
             payout = pos.totalCost;
             if (payout > market.totalDeposited) {
                 payout = market.totalDeposited;
@@ -447,7 +476,6 @@ contract ChaosPredictionMarket is Ownable, ReentrancyGuard {
 
         require(payout > 0, "Nothing to claim");
 
-        // Full position cleanup
         pos.yesShares = 0;
         pos.noShares = 0;
         pos.totalCost = 0;
@@ -461,7 +489,7 @@ contract ChaosPredictionMarket is Ownable, ReentrancyGuard {
     // View functions
     // -----------------------------------------------------------------------
 
-    function getPosition(uint256 marketId, address trader) external view returns (
+    function getPosition(uint256 marketId, address trader) external view marketExists(marketId) returns (
         uint256 yesShares, uint256 noShares, uint256 totalCost
     ) {
         Position storage pos = positions[marketId][trader];
