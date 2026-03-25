@@ -32,3 +32,5 @@ newspredict/typechain-types/
 
 # OMC state
 .omc/
+
+.claude/

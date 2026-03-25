@@ -1,11 +1,12 @@
+// Copyright (c) 2026 ChaosDevOps@BKK&Estonia. All rights reserved.
 import hre from "hardhat";
 
 async function main() {
   const [deployer] = await hre.network.provider.request({ method: "eth_accounts" }) as string[];
   console.log("Deployer:", deployer);
 
-  // 1. Deploy CRUX Token (initial supply: 1 billion)
-  const tokenArtifact = await hre.artifacts.readArtifact("CrucixToken");
+  // 1. Deploy CHAOS Token (initial supply: 1 billion)
+  const tokenArtifact = await hre.artifacts.readArtifact("ChaosToken");
   const tokenFactory = new hre.ethers.ContractFactory(
     tokenArtifact.abi,
     tokenArtifact.bytecode
@@ -14,10 +15,10 @@ async function main() {
   const token = await tokenFactory.deploy(initialSupply);
   await token.waitForDeployment();
   const tokenAddress = await token.getAddress();
-  console.log("CrucixToken deployed:", tokenAddress);
+  console.log("ChaosToken deployed:", tokenAddress);
 
-  // 2. Deploy PredictionMarket
-  const marketArtifact = await hre.artifacts.readArtifact("PredictionMarket");
+  // 2. Deploy ChaosPredictionMarket
+  const marketArtifact = await hre.artifacts.readArtifact("ChaosPredictionMarket");
   const marketFactory = new hre.ethers.ContractFactory(
     marketArtifact.abi,
     marketArtifact.bytecode
@@ -25,13 +26,13 @@ async function main() {
   const market = await marketFactory.deploy(tokenAddress);
   await market.waitForDeployment();
   const marketAddress = await market.getAddress();
-  console.log("PredictionMarket deployed:", marketAddress);
+  console.log("ChaosPredictionMarket deployed:", marketAddress);
 
   console.log("\n=== Deployment Summary ===");
-  console.log(`CRUX Token:        ${tokenAddress}`);
-  console.log(`PredictionMarket:  ${marketAddress}`);
+  console.log(`CHAOS Token:              ${tokenAddress}`);
+  console.log(`ChaosPredictionMarket:    ${marketAddress}`);
   console.log(`\nAdd to .env.local:`);
-  console.log(`NEXT_PUBLIC_CRUX_TOKEN_TESTNET=${tokenAddress}`);
+  console.log(`NEXT_PUBLIC_CHAOS_TOKEN_TESTNET=${tokenAddress}`);
   console.log(`NEXT_PUBLIC_MARKET_CONTRACT_TESTNET=${marketAddress}`);
 }
 

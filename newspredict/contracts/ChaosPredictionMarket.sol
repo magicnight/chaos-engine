@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: MIT
+// Copyright (c) 2026 ChaosDevOps@BKK&Estonia. All rights reserved.
 pragma solidity ^0.8.24;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -7,13 +8,19 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 /**
- * @title PredictionMarket
- * @dev On-chain prediction market using CRUX tokens
+ * @title ChaosPredictionMarket
+ * @author ChaosDevOps@BKK&Estonia
+ * @notice On-chain prediction market powered by CHAOS Engine OSINT intelligence
+ * @dev
  * - Markets created by owner (system) or approved creators
  * - LMSR pricing computed off-chain, shares tracked on-chain
  * - Resolution by owner with automated payout
+ * - Uses CHAOS token (BEP-20) for all transactions
+ *
+ * Part of the CHAOS Engine — Connected Human-Augmented OSINT Suite
+ * https://github.com/magicnight/chaos-engine
  */
-contract PredictionMarket is Ownable, ReentrancyGuard {
+contract ChaosPredictionMarket is Ownable, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
     IERC20 public token;
@@ -86,7 +93,6 @@ contract PredictionMarket is Ownable, ReentrancyGuard {
         require(shares > 0, "Must buy > 0 shares");
         require(maxCost > 0, "Max cost must be > 0");
 
-        // Transfer tokens from trader (cost computed off-chain, validated by maxCost)
         token.safeTransferFrom(msg.sender, address(this), maxCost);
 
         Position storage pos = positions[marketId][msg.sender];
@@ -126,7 +132,6 @@ contract PredictionMarket is Ownable, ReentrancyGuard {
 
         if (market.status == MarketStatus.ResolvedYes) {
             require(pos.yesShares > 0, "No winning shares");
-            // Each winning share pays 1 token
             payout = pos.yesShares;
             pos.yesShares = 0;
         } else if (market.status == MarketStatus.ResolvedNo) {
@@ -134,7 +139,6 @@ contract PredictionMarket is Ownable, ReentrancyGuard {
             payout = pos.noShares;
             pos.noShares = 0;
         } else if (market.status == MarketStatus.Cancelled) {
-            // Refund total cost on cancellation
             payout = pos.totalCost;
             pos.yesShares = 0;
             pos.noShares = 0;
