@@ -9,19 +9,22 @@ interface BreakingBannerProps {
 
 export function BreakingBanner({ headline, marketUrl }: BreakingBannerProps) {
   return (
-    <div className="rounded-xl bg-[var(--card)] border-l-4 border-[var(--accent)] px-4 py-3 flex items-center justify-between gap-3">
+    <div className="rounded-xl bg-[var(--card)] border border-[var(--danger)]/20 px-4 py-3 flex items-center justify-between gap-3 animate-fade-in">
       <div className="min-w-0">
-        <p className="text-[10px] text-[var(--accent)] font-bold uppercase tracking-wider mb-0.5">
-          Breaking
-        </p>
-        <p className="text-sm font-medium truncate">{headline}</p>
+        <div className="flex items-center gap-2 mb-1">
+          <span className="w-1.5 h-1.5 rounded-full bg-[var(--danger)] animate-pulse" />
+          <span className="text-[10px] text-[var(--danger)] font-bold uppercase tracking-wider">
+            Breaking Intel
+          </span>
+        </div>
+        <p className="text-sm font-medium leading-tight line-clamp-2">{headline}</p>
       </div>
       {marketUrl && (
         <Link
           href={marketUrl}
-          className="shrink-0 text-xs text-[var(--accent)] font-medium"
+          className="shrink-0 px-3 py-1.5 rounded-full bg-[var(--accent-glow)] text-[var(--accent)] text-xs font-semibold hover:bg-[var(--accent)]/20 transition-colors"
         >
-          New Market &rarr;
+          Trade &rarr;
         </Link>
       )}
     </div>

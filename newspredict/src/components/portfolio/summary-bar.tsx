@@ -9,26 +9,33 @@ interface SummaryBarProps {
 export function SummaryBar({ totalPnl, activePositions, winRate }: SummaryBarProps) {
   const isPositive = totalPnl >= 0;
   return (
-    <div className="mx-4 my-2 flex items-center justify-between rounded-xl bg-[var(--card)] px-4 py-3">
+    <div className="mx-4 my-2 flex items-center justify-between glass rounded-xl px-4 py-3 border border-[var(--border-subtle)]">
       <div className="flex items-center gap-1.5">
-        <span className="text-xs text-[var(--muted)]">Portfolio</span>
+        <span className="text-[10px] text-[var(--muted)] uppercase tracking-wide">P&L</span>
         <span
-          className={`text-sm font-bold ${
+          className={`text-sm font-bold font-mono ${
             isPositive ? 'text-[var(--success)]' : 'text-[var(--danger)]'
           }`}
         >
-          {isPositive ? '+' : '-'}${Math.abs(totalPnl)}
-          <span className="ml-0.5 text-[10px]">{isPositive ? '\u2191' : '\u2193'}</span>
+          {isPositive ? '+' : '-'}${Math.abs(totalPnl).toFixed(0)}
+          <svg className="inline ml-0.5 w-3 h-3" viewBox="0 0 12 12" fill="currentColor">
+            {isPositive
+              ? <path d="M6 2L10 8H2L6 2Z" />
+              : <path d="M6 10L2 4H10L6 10Z" />
+            }
+          </svg>
         </span>
       </div>
       <div className="h-4 w-px bg-[var(--border)]" />
-      <span className="text-xs text-[var(--muted)]">
-        <span className="text-[var(--foreground)] font-medium">{activePositions}</span> Active
-      </span>
+      <div className="text-center">
+        <span className="text-sm font-bold text-[var(--foreground)] font-mono">{activePositions}</span>
+        <span className="text-[10px] text-[var(--muted)] ml-1">Active</span>
+      </div>
       <div className="h-4 w-px bg-[var(--border)]" />
-      <span className="text-xs text-[var(--muted)]">
-        Win <span className="text-[var(--foreground)] font-medium">{winRate}%</span>
-      </span>
+      <div className="text-center">
+        <span className="text-sm font-bold text-[var(--foreground)] font-mono">{winRate}%</span>
+        <span className="text-[10px] text-[var(--muted)] ml-1">Win</span>
+      </div>
     </div>
   );
 }
