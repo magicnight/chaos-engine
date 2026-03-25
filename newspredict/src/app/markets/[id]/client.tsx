@@ -5,6 +5,8 @@ import { OrderPanel } from '@/components/market/order-panel';
 import { PriceChart } from '@/components/market/price-chart';
 import { MarketStats } from '@/components/market/market-stats';
 import { useLocale } from '@/lib/i18n/context';
+import { useLivePrice } from '@/hooks/use-live-price';
+import { CommentsSection } from '@/components/market/comments-section';
 
 interface TradeItem {
   id: string;
@@ -59,6 +61,7 @@ export function MarketDetailClient({
   const [tradeSuccess, setTradeSuccess] = useState(false);
   const { t } = useLocale();
   const timeAgo = useTimeAgo();
+  const live = useLivePrice(marketId, { yesPrice, noPrice, volume, traderCount });
 
   return (
     <div className="px-4 space-y-4 pb-8">
@@ -67,8 +70,8 @@ export function MarketDetailClient({
       {status === 'open' && (
         <OrderPanel
           marketId={marketId}
-          yesPrice={yesPrice}
-          noPrice={noPrice}
+          yesPrice={live.yesPrice}
+          noPrice={live.noPrice}
           onTrade={(result) => {
             if (result.success) setTradeSuccess(true);
           }}
@@ -82,8 +85,8 @@ export function MarketDetailClient({
       )}
 
       <MarketStats
-        volume={volume}
-        traderCount={traderCount}
+        volume={live.volume}
+        traderCount={live.traderCount}
         closeAt={closeAt}
         resolutionCriteria={resolutionCriteria}
         resolutionSource={resolutionSource}
@@ -115,6 +118,8 @@ export function MarketDetailClient({
           </div>
         )}
       </div>
+
+      <CommentsSection marketId={marketId} />
     </div>
   );
 }

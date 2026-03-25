@@ -184,6 +184,13 @@
     "guestLogin": "以访客身份继续",
     "walletLogin": "连接钱包"
   },
+  "comments": {
+    "title": "评论",
+    "placeholder": "写评论...",
+    "submit": "发表",
+    "signInToComment": "登录后评论",
+    "noComments": "暂无评论"
+  },
   "locale": {
     "en": "EN",
     "zh": "中文",

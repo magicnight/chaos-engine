@@ -184,6 +184,13 @@
     "guestLogin": "Continue as Guest",
     "walletLogin": "Connect Wallet"
   },
+  "comments": {
+    "title": "Comments",
+    "placeholder": "Write a comment...",
+    "submit": "Post",
+    "signInToComment": "Sign in to comment",
+    "noComments": "No comments yet"
+  },
   "locale": {
     "en": "EN",
     "zh": "中文",

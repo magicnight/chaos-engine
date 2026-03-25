@@ -30,10 +30,13 @@ async function getBreakingNews() {
   try {
     const data = (await chaosClient.getEvents()) as any;
     const events = data?.events || [];
-    if (events.length === 0) return null;
-    return { headline: events[0]?.title || 'Breaking intelligence event', marketUrl: '/explore' };
+    if (events.length === 0) return [];
+    return events.slice(0, 3).map((e: any) => ({
+      headline: e.title || e.headline || 'Intelligence event',
+      marketUrl: '/explore',
+    }));
   } catch {
-    return null;
+    return [];
   }
 }
 
@@ -142,9 +145,11 @@ export default async function HomePage() {
         </section>
       )}
 
-      {breaking && (
-        <section className="px-4 mb-6">
-          <BreakingBanner headline={breaking.headline} marketUrl={breaking.marketUrl} />
+      {breaking.length > 0 && (
+        <section className="px-4 mb-6 space-y-2">
+          {breaking.map((b: any, i: number) => (
+            <BreakingBanner key={i} headline={b.headline} marketUrl={b.marketUrl} />
+          ))}
         </section>
       )}
 

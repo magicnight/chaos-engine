@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useSession } from 'next-auth/react';
 import { useLocale } from '@/lib/i18n/context';
 
 interface ProfileData {
@@ -31,6 +32,7 @@ export default function ProfilePage() {
   const [followerCount, setFollowerCount] = useState(0);
   const [followingCount, setFollowingCount] = useState(0);
   const { t, locale } = useLocale();
+  const { data: session } = useSession();
 
   useEffect(() => {
     fetch('/api/portfolio')
@@ -42,8 +44,8 @@ export default function ProfilePage() {
         }
         setData({
           user: {
-            id: '',
-            name: null,
+            id: (session?.user as any)?.id || '',
+            name: session?.user?.name || null,
             avatarUrl: null,
             createdAt: new Date().toISOString(),
             totalTrades: portfolio.positions?.length || 0,
@@ -55,7 +57,21 @@ export default function ProfilePage() {
         setLoading(false);
       })
       .catch(() => setLoading(false));
-  }, []);
+  }, [session]);
+
+  // Fetch follow counts when user data is available
+  useEffect(() => {
+    const userId = data?.user?.id;
+    if (!userId) return;
+    fetch(`/api/follows/list?userId=${userId}&type=followers`)
+      .then((r) => r.json())
+      .then((d) => setFollowerCount(d.users?.length || 0))
+      .catch(() => {});
+    fetch(`/api/follows/list?userId=${userId}&type=following`)
+      .then((r) => r.json())
+      .then((d) => setFollowingCount(d.users?.length || 0))
+      .catch(() => {});
+  }, [data?.user?.id]);
 
   if (loading) {
     return (

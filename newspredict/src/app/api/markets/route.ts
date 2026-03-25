@@ -12,6 +12,23 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get('status') || 'open';
     const limit = Math.min(Number(searchParams.get('limit') || '20'), 50);
 
+    const id = searchParams.get('id');
+    if (id) {
+      const [market] = await db.select().from(markets).where(eq(markets.id, id));
+      if (!market) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+      const price = getPrice(Number(market.yesShares), Number(market.noShares), Number(market.liquidityParam));
+      return NextResponse.json({
+        id: market.id,
+        question: market.question,
+        category: market.category,
+        status: market.status,
+        yesPrice: price.yes,
+        noPrice: price.no,
+        volume: Number(market.volume),
+        traderCount: market.traderCount,
+      });
+    }
+
     const conditions = [eq(markets.status, status)];
     if (category && category !== 'All') {
       conditions.push(eq(markets.category, category));
