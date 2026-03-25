@@ -256,64 +256,74 @@ Check if a condition is met in current data. Useful for prediction market resolu
 
 Each source returns a JSON object under `sources.<SourceName>` in the sweep data. Below are the key fields for each source.
 
-### Tier 1 -- Core OSINT
+### Tier 1 -- Core OSINT (16 sources)
 
 | Source | Key Fields |
 |--------|------------|
-| **ACLED** | `events[]` -- armed conflict events with `event_type`, `country`, `fatalities`, `date` |
-| **ADS-B** | `aircraft[]` -- tracked military/notable aircraft with `icao24`, `callsign`, `latitude`, `longitude`, `altitude` |
-| **FIRMS** | `hotspots[]` -- active fire detections with `latitude`, `longitude`, `brightness`, `confidence` |
-| **GDACS** | `alerts[]` -- natural disaster alerts with `type`, `severity`, `country`, `description` |
-| **GDELT** | `articles[]` -- global news events with `title`, `url`, `tone`, `themes`, `locations` |
-| **OpenSky** | `states[]` -- aircraft state vectors with position and velocity |
-| **ReliefWeb** | `reports[]` -- humanitarian reports with `title`, `country`, `disaster_type` |
-| **Safecast** | `measurements[]` -- radiation readings with `latitude`, `longitude`, `value`, `unit` |
-| **Sanctions** | `entries[]` -- sanctioned entities with `name`, `program`, `country` |
-| **Ships** | `vessels[]` -- maritime vessel positions with `mmsi`, `name`, `latitude`, `longitude` |
-| **SWPC** | `alerts[]` -- space weather alerts with `type`, `severity`, `issue_time` |
-| **Telegram** | `messages[]` -- OSINT channel messages with `channel`, `text`, `date` |
-| **USGS** | `earthquakes[]` -- seismic events with `magnitude`, `place`, `latitude`, `longitude`, `depth` |
-| **WHO** | `outbreaks[]` -- disease outbreak reports with `title`, `country`, `disease` |
+| **ACLED** | `events[]`, `totalEvents`, `totalFatalities` -- armed conflict events with `event_type`, `country`, `fatalities`, `latitude`, `longitude` |
+| **ADS-B** | `totalMilitary`, `categories`, `militaryAircraft[]` -- tracked military aircraft with callsign, type, position |
+| **FIRMS** | `hotspots[]` -- NASA satellite fire/thermal detections with `lat`, `lon`, `frp`, `brightness` |
+| **GDACS** | `alerts[]`, `summary` (red/orange/green counts) -- disaster alerts with `alertLevel`, `eventType`, `country`, `lat`, `lon` |
+| **GDELT** | `allArticles[]`, `totalArticles`, `conflicts[]`, `economy[]` -- global news with `title`, `url`, `seendate`, `domain` |
+| **OpenSky** | `regions[]` -- aircraft by theater with `total`, `noCallsign`, `topCountries` |
+| **ProMED** | `alerts[]`, `diseaseMentions`, `signals` -- disease outbreak early warning with `title`, `description`, `pubDate` |
+| **ReliefWeb** | `latestReports[]`, `totalReports` -- humanitarian reports with `title`, `date`, `countries`, `url` |
+| **Safecast** | `sites[]` -- nuclear radiation readings with `site`, `cpm`, `anomaly`, `measurements` |
+| **Sanctions** | `ofac` (publishDate, entryCount), `openSanctions` (searches, monitoringTargets) -- OFAC SDN + OpenSanctions |
+| **Ships** | Maritime AIS vessel tracking at chokepoints |
+| **SWPC** | `current` -- space weather scales (R/S/G) |
+| **Telegram** | `recentPosts[]`, `urgent[]` -- OSINT channel messages with `channel`, `text`, `date`, `views` |
+| **Tsunami** | `alerts[]`, `warnings`, `watches`, `advisories` -- Pacific Tsunami Warning Center with `title`, `summary` |
+| **USGS** | `quakes[]`, `totalQuakes`, `maxMagnitude` -- seismic events with `mag`, `place`, `lat`, `lon` |
+| **WHO** | `alerts[]` -- disease outbreak news with `title`, `date`, `summary` |
 
-### Tier 2 -- Economic/Financial
-
-| Source | Key Fields |
-|--------|------------|
-| **BLS** | `data` -- labor statistics with series data |
-| **Comtrade** | `trades[]` -- international trade flows with `reporter`, `partner`, `value` |
-| **EIA** | `data` -- energy data including `wti.value`, `brent.value`, `natural_gas.value` |
-| **FRED** | `indicators[]` -- Federal Reserve indicators (VIX, DGS10, etc.) with `series_id`, `value`, `date` |
-| **GSCPI** | `data` -- Global Supply Chain Pressure Index |
-| **Treasury** | `yields[]` -- US Treasury yield curve data |
-| **USASpending** | `awards[]` -- federal spending awards with `amount`, `agency`, `recipient` |
-| **WorldNews** | `articles[]` -- aggregated world news |
-
-### Tier 3
+### Tier 2 -- Economic/Financial (10 sources)
 
 | Source | Key Fields |
 |--------|------------|
-| **Bluesky** | `posts[]` -- social media posts with sentiment |
-| **CISA-KEV** | `vulnerabilities[]` -- known exploited vulnerabilities with `cve_id`, `vendor`, `product` |
-| **Cloudflare Radar** | `data` -- internet traffic anomalies and attack trends |
-| **CVE** | `vulnerabilities[]` -- recent CVEs with `id`, `description`, `severity` |
-| **EPA** | `data` -- environmental monitoring data |
-| **ISC** | `data` -- Internet Storm Center threat level |
-| **KiwiSDR** | `receivers[]` -- software-defined radio receivers and signals |
-| **NOAA** | `alerts[]` -- weather alerts with `headline`, `severity`, `area` |
-| **Patents** | `patents[]` -- recent patent filings in strategic domains |
-| **Reddit** | `posts[]` -- OSINT-relevant subreddit posts with `title`, `subreddit`, `score` |
+| **BLS** | Labor statistics with series data |
+| **CoinGecko** | `coins[]`, `totalMarketCap` -- top 20 crypto with `symbol`, `price`, `change24h`, `marketCap` |
+| **Comtrade** | `tradeFlows[]` -- UN strategic trade with `reporter`, `commodity`, `topPartners` |
+| **ECB** | `eurUsd` (rate, date), `euribor3m` (rate, date) -- European Central Bank data |
+| **EIA** | `data` -- energy data with `wti`, `brent`, `natural_gas` values |
+| **FRED** | `indicators[]` -- Federal Reserve indicators (VIX, DGS10, etc.) with `id`, `value`, `date` |
+| **GSCPI** | Global Supply Chain Pressure Index |
+| **Treasury** | US Treasury fiscal data -- debt and rates |
+| **USAspending** | `recentDefenseContracts[]`, `topAgencies[]` -- federal spending with `recipient`, `amount`, `agency` |
+| **WorldNews** | `articles[]`, `categories`, `topNegative[]` -- global news with sentiment scoring |
 
-### Tier 4
-
-| Source | Key Fields |
-|--------|------------|
-| **CelesTrak** | `satellites[]` -- satellite tracking data with TLE elements |
-
-### Tier 5
+### Tier 3 -- Supplementary (15 sources)
 
 | Source | Key Fields |
 |--------|------------|
-| **YFinance** | `quotes` -- market quotes keyed by ticker (SPY, BTC-USD, GC=F, etc.) with `price`, `change_pct`, `volume` |
+| **Bluesky** | `topics` (geopolitics, markets, breaking, conflict) -- posts with `text`, `author`, `likes`, `createdAt` |
+| **CISA-KEV** | `vulnerabilities[]`, `recentAdditions`, `ransomwareLinked`, `topVendors` -- with `cveID`, `vendorProject`, `product` |
+| **Cloudflare Radar** | Internet traffic anomalies and Layer 3 attack trends |
+| **Copernicus** | `title`, `period`, `globalTemperatureAnomaly`, `summary` -- climate bulletin |
+| **CVE/NVD** | `topVulnerabilities[]`, `criticalCount` -- recent CVEs with `id`, `severity`, `score` |
+| **EPA RadNet** | `readings[]`, `totalReadings`, `stateSummary` -- radiation with `location`, `state`, `result`, `unit` |
+| **EU Sanctions** | `regimes[]`, `totalRegimes` -- EU consolidated sanctions with `name`, `country`, `adopted` |
+| **Google Trends** | `trends[]` -- daily trending searches with `query`, `traffic`, `date` |
+| **ISC/SANS** | `infocon` (status, severity) -- Internet Storm Center threat level |
+| **KiwiSDR** | `totalReceivers`, `onlineCount` -- global HF radio receiver network |
+| **NASA NEO** | `objects[]`, `hazardousCount`, `elementCount` -- near-Earth objects with `name`, `missDistanceKm`, `hazardous` |
+| **NOAA** | `topAlerts[]` -- NWS severe weather alerts with `event`, `severity`, `headline` |
+| **NTSB** | `incidents[]`, `totalIncidents`, `fatalInjuries` -- aviation safety with `location`, `aircraft`, `severity` |
+| **Patents** | `domains` (ai, quantum, biotech, etc.), `totalFound` -- USPTO strategic tech filings |
+| **Reddit** | `subreddits` (worldnews, geopolitics, economics, technology) -- posts with `title`, `score`, `comments` |
+| **RIPE Atlas** | `activeProbes`, `recentMeasurements[]` -- internet measurement network |
+
+### Tier 4 -- Space
+
+| Source | Key Fields |
+|--------|------------|
+| **CelesTrak** | `recentLaunches[]`, `militarySats`, `starlink`, `totalNewObjects` -- satellite orbit tracking |
+
+### Tier 5 -- Markets
+
+| Source | Key Fields |
+|--------|------------|
+| **YFinance** | `quotes` -- market quotes keyed by ticker (SPY, BTC-USD, GC=F, etc.) with `price`, `changePct`, `volume` |
 
 ---
 

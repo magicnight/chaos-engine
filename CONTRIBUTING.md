@@ -21,27 +21,36 @@ Open an issue before writing code if your change would:
 
 ## Development Baseline
 
-- Node.js 22+
-- Pure ESM
-- Keep the zero-extra-dependency approach unless there is a strong reason not to
-- Do not commit secrets, `.env` files, or generated runtime data
+- Rust stable (edition 2021)
+- `cargo build` / `cargo test` must pass
+- Keep the minimal-dependency approach unless there is a strong reason not to
+- Do not commit secrets, `.env` files, or generated runtime data (`runs/`)
 
 ## Adding a New Source
 
-Each source should be a standalone module in `apis/sources/` and integrate cleanly with `apis/briefing.mjs`.
+Each source is a Rust module in `src/sources/` implementing the `IntelSource` trait. A template is at `src/sources/_template.rs`.
+
+Three steps to add a source:
+
+1. Create `src/sources/your_source.rs` implementing `IntelSource` (name, description, tier, sweep)
+2. Register it in `src/sources/mod.rs` (`pub mod` + add to `build_sources()`)
+3. Done -- the briefing engine, CLI, dashboard, delta engine, and API all pick it up automatically
 
 Minimum expectations:
 
-- export a `briefing()` function that returns structured data
-- handle upstream errors and rate limits cleanly
+- implement `IntelSource` trait (`name`, `description`, `tier`, `sweep`)
+- return structured JSON via `serde_json::json!()` with consistent field naming
+- handle upstream errors and rate limits cleanly (return error JSON, don't panic)
 - degrade gracefully when API keys are missing
 - avoid breaking the full sweep if the source fails
 - document any required environment variables in `.env.example` and `README.md`
 - explain why the source improves signal quality, not just source count
 
-If your source also affects the dashboard:
+If your source should display in a dashboard panel:
 
-- wire it through `dashboard/inject.mjs`
+- add data extraction in `synthesize()` function in `static/dashboard.html`
+- add or update an `update*()` rendering function
+- register in `updateAllPanels()` and the `panelUpdaters` map
 - explain the user-facing impact in the PR
 - include a screenshot when the UI changes materially
 

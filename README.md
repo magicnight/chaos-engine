@@ -40,7 +40,7 @@ Everything renders on a self-contained **Jarvis-style dashboard** with a 3D glob
 ## Quick Start
 
 ```bash
-git clone https://github.com/calesthio/Crucix.git && cd Crucix
+git clone https://github.com/magicnight/chaos-engine.git && cd chaos-engine
 cargo build --release
 cp .env.example .env          # edit with your API keys (optional)
 ./target/release/chaos serve
@@ -83,11 +83,24 @@ All sources run in parallel via `tokio::join_all` with per-source timeouts. 20+ 
 
 ### CHAOS MONITOR Dashboard
 
-- **Gridstack.js** panel system with drag, resize, and layout persistence
-- **3D globe** with real-time event plotting
+- **22 draggable panels** organized into 9 categories, all toggleable in Settings
+- **Gridstack.js** panel system with drag, resize, and layout persistence (localStorage)
+- **3D globe** with real-time event plotting (quakes, fires, conflicts, weather)
 - **Server-Sent Events** for live data streaming
 - **Rate-limited public API** mode with API key authentication
 - **Embedded in binary** via `include_str!` -- no external static files needed
+
+| Category | Panels |
+|----------|--------|
+| Situational | Situation Map, Transport & Airspace |
+| Financial | Market Data, Risk Gauges, Energy & Macro, Global Economy |
+| Security | Conflicts, OSINT Stream, Sanctions Watch |
+| News | News Feed, Trends & Innovation |
+| Natural | Seismic Monitor, Nuclear Watch, Climate & Environment |
+| Cyber | Cyber Threats, Network Intel |
+| Space | Space Watch, NEO Tracker |
+| System | Source Health, Delta / Changes |
+| AI | AI Intelligence Brief, Cross-Source Signals |
 
 ### Multi-Tier Alerts
 
@@ -324,14 +337,19 @@ A full template is provided at `src/sources/_template.rs`. See [`docs/source-plu
 
 The dashboard exposes a RESTful API with SSE streaming. In public mode (`--public --api-key KEY`), all endpoints are rate-limited and require `Authorization: Bearer <key>`.
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/v1/health` | GET | Health check |
-| `/api/v1/sweep` | GET | Latest sweep data |
-| `/api/v1/sweep` | POST | Trigger manual sweep |
-| `/api/v1/history` | GET | Sweep history |
-| `/api/v1/trends` | GET | Trend data |
-| `/api/v1/events` | GET (SSE) | Real-time event stream |
+| Endpoint | Method | Auth | Description |
+|----------|--------|:----:|-------------|
+| `/api/v1/data` | GET | No | Latest sweep data (all sources, delta, correlations, analysis) |
+| `/api/v1/health` | GET | No | Health check (uptime, LLM, DB, degraded sources) |
+| `/api/v1/trends` | GET | No | Historical sweep data (last 50) |
+| `/api/v1/analysis` | GET | No | Latest LLM intelligence briefing |
+| `/api/v1/sources` | GET | No | Source list with tier, description, reliability |
+| `/api/v1/sse` | GET | No | Server-Sent Events (real-time updates) |
+| `/api/v1/events` | GET | Public | Structured events with category and geo tags |
+| `/api/v1/correlations` | GET | Public | Cross-source correlation signals |
+| `/api/v1/market-seeds` | GET | Public | Prediction market seed questions |
+| `/api/v1/query` | POST | Public | Query historical data with filters |
+| `/api/v1/resolve-check` | POST | Public | Check condition against current data |
 
 Full specification: [`docs/api.md`](docs/api.md) | [`docs/openapi.yaml`](docs/openapi.yaml)
 

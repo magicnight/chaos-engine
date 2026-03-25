@@ -381,7 +381,14 @@ var PANELS = [
   { id: 'space',     title: 'SPACE WATCH',          icon: '\uD83D\uDEF0', category: 'Space',        w: 4, h: 2, x: 8, y: 13 },
   { id: 'delta',     title: 'DELTA / CHANGES',      icon: '\uD83D\uDCC8', category: 'System',       w: 4, h: 3, x: 0, y: 14 },
   { id: 'analysis',  title: 'AI INTELLIGENCE BRIEF', icon: '\uD83E\uDD16', category: 'AI',          w: 4, h: 4, x: 4, y: 15 },
-  { id: 'signals',   title: 'CROSS-SOURCE SIGNALS', icon: '\uD83D\uDD17', category: 'AI',           w: 4, h: 3, x: 8, y: 15 }
+  { id: 'signals',   title: 'CROSS-SOURCE SIGNALS', icon: '\uD83D\uDD17', category: 'AI',           w: 4, h: 3, x: 8, y: 15 },
+  { id: 'sanctions',  title: 'SANCTIONS WATCH',      icon: '\uD83D\uDEAB', category: 'Security',     w: 4, h: 3, x: 0, y: 18 },
+  { id: 'economy',    title: 'GLOBAL ECONOMY',       icon: '\uD83C\uDFE6', category: 'Financial',    w: 4, h: 3, x: 4, y: 18 },
+  { id: 'climate',    title: 'CLIMATE & ENVIRON',    icon: '\uD83C\uDF21', category: 'Natural',      w: 4, h: 3, x: 8, y: 18 },
+  { id: 'network',    title: 'NETWORK INTEL',        icon: '\uD83C\uDF10', category: 'Cyber',        w: 4, h: 2, x: 0, y: 21 },
+  { id: 'transport',  title: 'TRANSPORT & AIRSPACE', icon: '\u2708',       category: 'Situational',  w: 4, h: 3, x: 4, y: 21 },
+  { id: 'trends',     title: 'TRENDS & INNOVATION',  icon: '\uD83D\uDCC8', category: 'News',         w: 4, h: 3, x: 8, y: 21 },
+  { id: 'asteroids',  title: 'NEO TRACKER',          icon: '\u2604',       category: 'Space',        w: 4, h: 2, x: 0, y: 24 }
 ];
 
 var regionPOV = {
@@ -466,17 +473,60 @@ function synthesize(raw) {
     title: a.title || '', date: a.date || '', summary: a.summary || a.description || ''
   };});
 
+  var promed = src.ProMED || {};
+  v.promedAlerts = (promed.alerts || []).map(function(a) { return {
+    title: a.title || '', date: a.pubDate || '', description: a.description || '', link: a.link || ''
+  };});
+  v.promedDiseases = promed.diseaseMentions || {};
+
   var gdelt = src.GDELT || {};
-  v.newsCount = gdelt.totalArticles || (gdelt.allArticles || []).length;
   v.newsArticles = (gdelt.allArticles || []).map(function(a) { return {
     title: a.title || '', url: a.url || '',
     domain: a.domain || a.source || 'GDELT', date: a.date || a.seendate || ''
   };});
 
+  var wn = src.WorldNews || {};
+  var wnArticles = (wn.articles || []).map(function(a) { return {
+    title: a.title || '', url: a.url || '',
+    domain: 'WorldNews', date: a.publishDate || ''
+  };});
+  v.newsArticles = v.newsArticles.concat(wnArticles);
+
+  var rw = src.ReliefWeb || {};
+  var rwReports = (rw.latestReports || []).map(function(r) { return {
+    title: r.title || '', url: r.url || '',
+    domain: 'ReliefWeb', date: r.date || ''
+  };});
+  v.newsArticles = v.newsArticles.concat(rwReports);
+
+  v.newsCount = v.newsArticles.length;
+
   var tg = src.Telegram || {};
   v.tgPosts = tg.recentPosts || [];
   v.tgUrgent = tg.urgent || [];
   v.tgPostCount = v.tgPosts.length;
+
+  var bsky = src.Bluesky || {};
+  var bskyTopics = bsky.topics || {};
+  v.bskyPosts = [];
+  for (var bt in bskyTopics) {
+    if (!bskyTopics.hasOwnProperty(bt)) continue;
+    (bskyTopics[bt] || []).forEach(function(p) {
+      v.bskyPosts.push({ channel: 'BSKY/' + bt.toUpperCase(), text: p.text || '', date: p.createdAt || '', views: p.likes || 0 });
+    });
+  }
+  v.bskyPosts = v.bskyPosts.slice(0, 10);
+
+  var reddit = src.Reddit || {};
+  var redditSubs = reddit.subreddits || {};
+  v.redditPosts = [];
+  for (var rs in redditSubs) {
+    if (!redditSubs.hasOwnProperty(rs)) continue;
+    (redditSubs[rs] || []).forEach(function(p) {
+      v.redditPosts.push({ channel: 'r/' + rs, text: p.title || '', date: p.created || '', views: p.score || 0 });
+    });
+  }
+  v.redditPosts = v.redditPosts.slice(0, 10);
 
   var sat = src.CelesTrak || {};
   v.space = {
@@ -536,6 +586,20 @@ function synthesize(raw) {
     lat: q.lat || q.latitude || 0, lon: q.lon || q.longitude || 0
   };});
 
+  var gdacs = src.GDACS || {};
+  v.gdacsAlerts = (gdacs.alerts || []).map(function(a) { return {
+    title: a.title || '', alertLevel: a.alertLevel || '', eventType: a.eventType || '',
+    country: a.country || '', lat: a.lat || 0, lon: a.lon || 0, date: a.pubDate || ''
+  };});
+  v.gdacsSummary = gdacs.summary || {};
+
+  var tsunami = src.Tsunami || {};
+  v.tsunamiAlerts = (tsunami.alerts || []).map(function(a) { return {
+    title: a.title || '', date: a.updated || '', summary: a.summary || ''
+  };});
+  v.tsunamiWarnings = tsunami.warnings || 0;
+  v.tsunamiWatches = tsunami.watches || 0;
+
   var noaa = src.NOAA || {};
   v.weatherAlerts = (noaa.topAlerts || noaa.alerts || []).map(function(a) { return {
     event: a.event || '', severity: a.severity || '',
@@ -551,9 +615,133 @@ function synthesize(raw) {
   v.cveCount = nvd.criticalCount || 0;
   v.cveTop = nvd.topVulnerabilities || [];
 
+  var kev = src['CISA-KEV'] || {};
+  v.kevRecent = (kev.vulnerabilities || []).map(function(k) { return {
+    cveId: k.cveID || '', vendor: k.vendorProject || '', product: k.product || '',
+    name: k.vulnerabilityName || '', dateAdded: k.dateAdded || '',
+    ransomware: k.knownRansomware === 'Known'
+  };});
+  v.kevCount = kev.recentAdditions || 0;
+  v.kevRansomware = kev.ransomwareLinked || 0;
+
+  var cg = src.CoinGecko || {};
+  v.cgCoins = (cg.coins || []).map(function(c) { return {
+    name: c.name || '', symbol: c.symbol || '', price: c.price || 0,
+    change24h: c.change24h || 0, marketCap: c.marketCap || 0
+  };});
+  v.cgMarketCap = cg.totalMarketCap || 0;
+
   v.bls = src.BLS || {};
   v.treasury = src['US Treasury'] || {};
   v.gscpi = src.GSCPI || {};
+
+  // --- Sanctions ---
+  var ofac = src.Sanctions || {};
+  v.ofac = {
+    publishDate: (ofac.ofac || {}).publishDate || '',
+    entryCount: (ofac.ofac || {}).entryCount || 0,
+    dataAvailable: (ofac.ofac || {}).dataAvailable || false,
+    monitoringTargets: ((ofac.openSanctions || {}).monitoringTargets || []).length
+  };
+  var euSanc = src.EUSanctions || {};
+  v.euSanctions = (euSanc.regimes || []).map(function(r) { return {
+    name: r.name || '', country: r.country || '', adopted: r.adopted || '', url: r.url || ''
+  };});
+  v.euSanctionsCount = euSanc.totalRegimes || 0;
+
+  // --- Global Economy ---
+  var ecb = src.ECB || {};
+  v.ecb = {
+    eurUsd: (ecb.eurUsd || {}).rate || 0,
+    eurUsdDate: (ecb.eurUsd || {}).date || '',
+    euribor: (ecb.euribor3m || {}).rate || 0,
+    euriborDate: (ecb.euribor3m || {}).date || ''
+  };
+  var comtrade = src['UN Comtrade'] || {};
+  v.comtrade = (comtrade.tradeFlows || []).map(function(f) { return {
+    reporter: f.reporter || '', commodity: f.commodity || '',
+    topPartners: f.topPartners || [], totalRecords: f.totalRecords || 0
+  };});
+  var spending = src.USAspending || {};
+  v.spending = {
+    contracts: (spending.recentDefenseContracts || []).map(function(c) { return {
+      recipient: c.recipient || '', amount: c.amount || 0,
+      description: (c.description || '').substring(0, 60), agency: c.agency || '', date: c.date || ''
+    };}),
+    agencies: (spending.topAgencies || []).map(function(a) { return {
+      name: a.name || '', budget: a.budget || 0, obligations: a.obligations || 0
+    };})
+  };
+
+  // --- Climate & Environment ---
+  var copernicus = src.Copernicus || {};
+  v.climate = {
+    title: copernicus.title || '', period: copernicus.period || '',
+    tempAnomaly: copernicus.globalTemperatureAnomaly || null,
+    summary: (copernicus.summary || '').substring(0, 200)
+  };
+  var epaRad = src['EPA-RadNet'] || {};
+  v.epaRadnet = {
+    totalReadings: epaRad.totalReadings || 0,
+    readings: (epaRad.readings || []).slice(0, 10).map(function(r) { return {
+      location: r.location || '', state: r.state || '',
+      result: r.result || 0, unit: r.unit || '', date: r.collectDate || ''
+    };})
+  };
+
+  // --- Network Intel ---
+  var isc = src['ISC-SANS'] || {};
+  v.iscInfocon = {
+    status: (isc.infocon || {}).status || 'unknown',
+    severity: (isc.infocon || {}).severity || ''
+  };
+  var ripe = src.RIPEAtlas || {};
+  v.ripeAtlas = {
+    activeProbes: ripe.activeProbes || 0,
+    measurements: (ripe.recentMeasurements || []).slice(0, 5).map(function(m) { return {
+      type: m.type || '', description: m.description || '', participants: m.participantCount || 0
+    };})
+  };
+
+  // --- Transport & Airspace ---
+  var ntsb = src.NTSB || {};
+  v.ntsb = {
+    totalIncidents: ntsb.totalIncidents || 0,
+    fatalInjuries: ntsb.fatalInjuries || 0,
+    incidents: (ntsb.incidents || []).slice(0, 8).map(function(inc) { return {
+      date: inc.date || '', location: inc.location || '', severity: inc.severity || '',
+      aircraft: inc.aircraft || '', fatalities: inc.fatalInjuries || 0
+    };})
+  };
+  var adsb = src['ADS-B'] || {};
+  v.adsb = {
+    totalMilitary: adsb.totalMilitary || 0,
+    categories: adsb.categories || {},
+    aircraft: (adsb.militaryAircraft || []).slice(0, 8)
+  };
+
+  // --- Trends & Innovation ---
+  var gtrends = src.GoogleTrends || {};
+  v.gtrends = (gtrends.trends || []).slice(0, 10).map(function(t) { return {
+    query: t.query || '', traffic: t.traffic || '', date: t.date || ''
+  };});
+  var patents = src['USPTO-Patents'] || {};
+  v.patents = {
+    totalFound: patents.totalFound || 0,
+    domains: patents.domains || {}
+  };
+
+  // --- NEO Tracker ---
+  var neo = src['NASA-NEO'] || {};
+  v.neo = {
+    hazardousCount: neo.hazardousCount || 0,
+    totalObjects: neo.elementCount || 0,
+    objects: (neo.objects || []).slice(0, 8).map(function(o) { return {
+      name: o.name || '', hazardous: o.hazardous || false,
+      distanceKm: o.missDistanceKm || 0, velocityKmh: o.velocityKmh || 0,
+      diameterMax: o.diameterMaxKm || 0, date: o.closeApproachDate || ''
+    };})
+  };
 
   v.delta = raw.delta || {};
   v.correlations = raw.correlations || [];
@@ -668,9 +856,9 @@ function updateSources() {
     { name: 'Maritime Watch', count: S.shipsError ? 0 : '--', dot: 'maritime', sub: 'chokepoints' },
     { name: 'Nuclear Sites', count: S.nuke.length, dot: 'nuke', sub: 'monitors' },
     { name: 'Conflict Events', count: S.conflictEvents, dot: 'incident', sub: S.conflictFatalities + ' fatalities' },
-    { name: 'Health Watch', count: S.whoAlerts.length, dot: 'health', sub: 'WHO alerts' },
-    { name: 'World News', count: S.newsCount, dot: 'news', sub: 'GDELT articles' },
-    { name: 'OSINT Feed', count: S.tgPostCount, dot: 'osint', sub: S.tgUrgent.length + ' urgent' },
+    { name: 'Health Watch', count: S.whoAlerts.length + (S.promedAlerts || []).length, dot: 'health', sub: 'WHO + ProMED alerts' },
+    { name: 'World News', count: S.newsCount, dot: 'news', sub: 'GDELT + WorldNews + ReliefWeb' },
+    { name: 'OSINT Feed', count: S.tgPostCount + (S.bskyPosts || []).length + (S.redditPosts || []).length, dot: 'osint', sub: 'TG + Bsky + Reddit' },
     { name: 'Satellites', count: S.space.militarySats, dot: 'space', sub: S.space.totalNewObjects + ' new objects' }
   ];
   el.innerHTML = layers.map(function(l) {
@@ -693,10 +881,20 @@ function updateMarkets() {
   }
   var indexCards = ['SPY', 'NASDAQ', 'DOW', 'RUSSELL', 'S&P 500'].map(mktCard).filter(Boolean).join('');
   var cryptoCards = ['BTC', 'ETH'].map(mktCard).filter(Boolean).join('');
-  if (!indexCards && !cryptoCards) { el.innerHTML = noDataHtml; return; }
+  // CoinGecko top coins (skip BTC/ETH if already shown via YFinance)
+  var cgCards = (S.cgCoins || []).filter(function(c) {
+    return c.symbol !== 'BTC' && c.symbol !== 'ETH' && c.price > 0;
+  }).slice(0, 4).map(function(c) {
+    var clr = c.change24h >= 0 ? 'var(--gain)' : 'var(--loss)';
+    var arrow = c.change24h >= 0 ? '&#9650;' : '&#9660;';
+    var pFmt = c.price >= 1000 ? '$' + c.price.toLocaleString(undefined, { maximumFractionDigits: 0 }) : '$' + c.price.toLocaleString(undefined, { maximumFractionDigits: 2 });
+    return '<div class="mc"><div class="ml">' + c.symbol.toUpperCase() + '</div><span class="mv" style="color:' + clr + '">' + pFmt + '</span><span class="ms" style="color:' + clr + '">' + arrow + ' ' + (c.change24h >= 0 ? '+' : '') + c.change24h.toFixed(2) + '%</span></div>';
+  }).join('');
+  var allCrypto = cryptoCards + cgCards;
+  if (!indexCards && !allCrypto) { el.innerHTML = noDataHtml; return; }
   el.innerHTML =
     (indexCards ? '<div style="margin-bottom:8px"><div style="font-family:var(--mono);font-size:9px;color:var(--dim);margin-bottom:4px;letter-spacing:1px">INDEXES</div><div class="metrics-row">' + indexCards + '</div></div>' : '') +
-    (cryptoCards ? '<div><div style="font-family:var(--mono);font-size:9px;color:var(--dim);margin-bottom:4px;letter-spacing:1px">CRYPTO</div><div class="metrics-row">' + cryptoCards + '</div></div>' : '');
+    (allCrypto ? '<div><div style="font-family:var(--mono);font-size:9px;color:var(--dim);margin-bottom:4px;letter-spacing:1px">CRYPTO</div><div class="metrics-row">' + allCrypto + '</div></div>' : '');
 }
 
 function updateRiskGauges() {
@@ -793,10 +991,11 @@ function updateNewsTicker() {
 function updateOsint() {
   var el = document.getElementById('panel-osint');
   if (!el) return;
-  var allPosts = S.tgUrgent.concat(S.tgPosts).slice(0, 15);
-  if (allPosts.length === 0 && S.whoAlerts.length === 0) { el.innerHTML = noDataHtml; return; }
+  var allPosts = S.tgUrgent.concat(S.tgPosts).concat(S.bskyPosts || []).concat(S.redditPosts || []).slice(0, 15);
+  if (allPosts.length === 0 && S.whoAlerts.length === 0 && (S.promedAlerts || []).length === 0) { el.innerHTML = noDataHtml; return; }
   var whoItems = S.whoAlerts.slice(0, 4).map(function(w) { return { channel: 'WHO ALERT', text: w.title, date: w.date, isWho: true }; });
-  var osintItems = allPosts.concat(whoItems);
+  var promedItems = (S.promedAlerts || []).slice(0, 4).map(function(p) { return { channel: 'PROMED', text: p.title, date: p.date, isWho: true }; });
+  var osintItems = allPosts.concat(whoItems).concat(promedItems);
   var osintCards = osintItems.map(function(p) {
     var views = p.views ? (p.views >= 1000 ? (p.views / 1000).toFixed(0) + 'K' : '' + p.views) : '';
     var age = p.date ? getAge(p.date) : '';
@@ -878,11 +1077,22 @@ function updateSignals() {
 function updateQuakes() {
   var el = document.getElementById('panel-quakes');
   if (!el) return;
-  var html = '<div style="font-family:var(--mono);font-size:10px;color:var(--dim);margin-bottom:6px">TOTAL: <span style="color:var(--accent)">' + S.quakeCount + '</span> | MAX: <span style="color:var(--accent)">' + S.maxMagnitude.toFixed(1) + '</span></div>';
-  html += S.quakes.slice(0, 10).map(function(q) {
+  var tsunamiTag = (S.tsunamiWarnings > 0) ? ' | <span style="color:var(--danger)">TSUNAMI WARNING: ' + S.tsunamiWarnings + '</span>' : (S.tsunamiWatches > 0 ? ' | <span style="color:var(--warn)">TSUNAMI WATCH: ' + S.tsunamiWatches + '</span>' : '');
+  var html = '<div style="font-family:var(--mono);font-size:10px;color:var(--dim);margin-bottom:6px">QUAKES: <span style="color:var(--accent)">' + S.quakeCount + '</span> | MAX: <span style="color:var(--accent)">' + S.maxMagnitude.toFixed(1) + '</span>' + tsunamiTag + '</div>';
+  html += S.quakes.slice(0, 6).map(function(q) {
     var magColor = q.mag >= 6 ? 'var(--danger)' : q.mag >= 4.5 ? 'var(--warn)' : 'var(--accent2)';
     return '<div class="econ-row"><span class="elabel">' + q.place.substring(0, 35) + '</span><span class="eval" style="color:' + magColor + '">M' + q.mag.toFixed(1) + '</span></div>';
   }).join('');
+  var gdacsRed = (S.gdacsAlerts || []).filter(function(a) { return (a.alertLevel || '').toLowerCase() === 'red'; });
+  var gdacsOrange = (S.gdacsAlerts || []).filter(function(a) { return (a.alertLevel || '').toLowerCase() === 'orange'; });
+  var gdacsShow = gdacsRed.concat(gdacsOrange).slice(0, 4);
+  if (gdacsShow.length > 0) {
+    html += '<div style="font-family:var(--mono);font-size:9px;color:var(--dim);margin:6px 0 4px;letter-spacing:1px">GDACS ALERTS</div>';
+    html += gdacsShow.map(function(a) {
+      var lvlColor = (a.alertLevel || '').toLowerCase() === 'red' ? 'var(--danger)' : 'var(--warn)';
+      return '<div class="econ-row"><span class="elabel">' + (a.eventType || 'Event') + ' - ' + (a.country || '').substring(0, 20) + '</span><span class="eval" style="color:' + lvlColor + '">' + (a.alertLevel || '').toUpperCase() + '</span></div>';
+    }).join('');
+  }
   el.innerHTML = html;
 }
 
@@ -900,12 +1110,22 @@ function updateNuclear() {
 function updateCyber() {
   var el = document.getElementById('panel-cyber');
   if (!el) return;
-  var html = '<div style="font-family:var(--mono);font-size:10px;color:var(--dim);margin-bottom:6px">CRITICAL CVEs: <span style="color:' + (S.cveCount > 0 ? 'var(--danger)' : 'var(--accent)') + '">' + S.cveCount + '</span></div>';
-  html += S.cveTop.slice(0, 8).map(function(c) {
+  var html = '<div style="font-family:var(--mono);font-size:10px;color:var(--dim);margin-bottom:6px">CRITICAL CVEs: <span style="color:' + (S.cveCount > 0 ? 'var(--danger)' : 'var(--accent)') + '">' + S.cveCount + '</span>' +
+    (S.kevCount > 0 ? ' | KEV: <span style="color:var(--warn)">' + S.kevCount + '</span>' : '') +
+    (S.kevRansomware > 0 ? ' | RANSOMWARE: <span style="color:var(--danger)">' + S.kevRansomware + '</span>' : '') +
+    '</div>';
+  html += S.cveTop.slice(0, 5).map(function(c) {
     var sevColor = (c.severity || '').toLowerCase() === 'critical' ? 'var(--danger)' : 'var(--warn)';
     return '<div class="econ-row"><span class="elabel" style="flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + (c.id || c.cveId || '') + '</span><span class="eval" style="color:' + sevColor + '">' + (c.severity || c.score || '') + '</span></div>';
   }).join('');
-  if (S.cveTop.length === 0) html += '<div style="text-align:center;color:var(--dim);font-family:var(--mono);font-size:10px;padding:8px">No critical vulnerabilities</div>';
+  if (S.kevRecent && S.kevRecent.length > 0) {
+    html += '<div style="font-family:var(--mono);font-size:9px;color:var(--dim);margin:6px 0 4px;letter-spacing:1px">CISA KEV (7d)</div>';
+    html += S.kevRecent.slice(0, 4).map(function(k) {
+      var rw = k.ransomware ? ' style="color:var(--danger)"' : '';
+      return '<div class="econ-row"><span class="elabel" style="flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + k.cveId + ' ' + k.vendor + '</span><span class="eval"' + rw + '>' + (k.ransomware ? 'RANSOM' : k.product) + '</span></div>';
+    }).join('');
+  }
+  if (S.cveTop.length === 0 && (!S.kevRecent || S.kevRecent.length === 0)) html += '<div style="text-align:center;color:var(--dim);font-family:var(--mono);font-size:10px;padding:8px">No critical vulnerabilities</div>';
   el.innerHTML = html;
 }
 
@@ -936,6 +1156,136 @@ function updateConflicts() {
     return '<div class="econ-row"><span class="elabel" style="flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + (e.type || e.event_type || 'Conflict') + ' - ' + (e.country || e.location || '') + '</span><span class="eval" style="color:' + fColor + '">' + fatalities + ' KIA</span></div>';
   }).join('');
   if (S.acledEvents.length === 0) html += '<div style="text-align:center;color:var(--dim);font-family:var(--mono);font-size:10px;padding:8px">No conflict events</div>';
+  el.innerHTML = html;
+}
+
+function updateSanctions() {
+  var el = document.getElementById('panel-sanctions');
+  if (!el) return;
+  var html = '<div style="font-family:var(--mono);font-size:10px;color:var(--dim);margin-bottom:6px">OFAC ENTRIES: <span style="color:var(--accent)">' + (S.ofac.entryCount || 0).toLocaleString() + '</span> | EU REGIMES: <span style="color:var(--accent)">' + S.euSanctionsCount + '</span></div>';
+  if (S.ofac.publishDate) html += '<div class="econ-row"><span class="elabel">OFAC Last Updated</span><span class="eval">' + S.ofac.publishDate + '</span></div>';
+  if (S.ofac.monitoringTargets) html += '<div class="econ-row"><span class="elabel">OpenSanctions Targets</span><span class="eval">' + S.ofac.monitoringTargets + '</span></div>';
+  html += (S.euSanctions || []).slice(0, 6).map(function(r) {
+    return '<div class="econ-row"><span class="elabel" style="flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + r.name.substring(0, 40) + '</span><span class="eval">' + (r.country || r.adopted || '') + '</span></div>';
+  }).join('');
+  if (!S.ofac.entryCount && !S.euSanctionsCount) html = noDataHtml;
+  el.innerHTML = html;
+}
+
+function updateEconomy() {
+  var el = document.getElementById('panel-economy');
+  if (!el) return;
+  var html = '';
+  if (S.ecb.eurUsd) html += '<div class="econ-row"><span class="elabel">EUR/USD</span><span class="eval" style="color:var(--accent)">' + S.ecb.eurUsd.toFixed(4) + '</span></div>';
+  if (S.ecb.euribor) html += '<div class="econ-row"><span class="elabel">EURIBOR 3M</span><span class="eval">' + S.ecb.euribor.toFixed(3) + '%</span></div>';
+  if (S.spending.agencies && S.spending.agencies.length > 0) {
+    html += '<div style="font-family:var(--mono);font-size:9px;color:var(--dim);margin:6px 0 4px;letter-spacing:1px">TOP AGENCIES</div>';
+    html += S.spending.agencies.slice(0, 4).map(function(a) {
+      var b = a.budget >= 1e9 ? '$' + (a.budget / 1e9).toFixed(0) + 'B' : a.budget >= 1e6 ? '$' + (a.budget / 1e6).toFixed(0) + 'M' : '$' + a.budget;
+      return '<div class="econ-row"><span class="elabel" style="flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + a.name.substring(0, 30) + '</span><span class="eval">' + b + '</span></div>';
+    }).join('');
+  }
+  if (S.comtrade && S.comtrade.length > 0) {
+    html += '<div style="font-family:var(--mono);font-size:9px;color:var(--dim);margin:6px 0 4px;letter-spacing:1px">TRADE FLOWS</div>';
+    html += S.comtrade.slice(0, 3).map(function(f) {
+      return '<div class="econ-row"><span class="elabel" style="flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + f.commodity.substring(0, 30) + '</span><span class="eval">' + f.totalRecords + ' rec</span></div>';
+    }).join('');
+  }
+  if (!html) html = noDataHtml;
+  el.innerHTML = html;
+}
+
+function updateClimate() {
+  var el = document.getElementById('panel-climate');
+  if (!el) return;
+  var html = '';
+  if (S.climate.tempAnomaly !== null && S.climate.tempAnomaly !== undefined) {
+    var aColor = S.climate.tempAnomaly > 1.5 ? 'var(--danger)' : S.climate.tempAnomaly > 1.0 ? 'var(--warn)' : 'var(--accent)';
+    html += '<div style="font-family:var(--mono);font-size:10px;color:var(--dim);margin-bottom:6px">TEMP ANOMALY: <span style="color:' + aColor + '">+' + S.climate.tempAnomaly.toFixed(2) + '\u00B0C</span></div>';
+  }
+  if (S.climate.period) html += '<div class="econ-row"><span class="elabel">Period</span><span class="eval">' + S.climate.period + '</span></div>';
+  if (S.climate.summary) html += '<div style="font-family:var(--mono);font-size:9px;color:var(--dim);margin:4px 0;line-height:1.4">' + S.climate.summary.substring(0, 150) + '</div>';
+  if (S.epaRadnet.totalReadings > 0) {
+    html += '<div style="font-family:var(--mono);font-size:9px;color:var(--dim);margin:6px 0 4px;letter-spacing:1px">EPA RADNET (' + S.epaRadnet.totalReadings + ' readings)</div>';
+    html += S.epaRadnet.readings.slice(0, 4).map(function(r) {
+      return '<div class="econ-row"><span class="elabel">' + r.location.substring(0, 20) + ', ' + r.state + '</span><span class="eval">' + r.result + ' ' + r.unit + '</span></div>';
+    }).join('');
+  }
+  if (!html) html = noDataHtml;
+  el.innerHTML = html;
+}
+
+function updateNetwork() {
+  var el = document.getElementById('panel-network');
+  if (!el) return;
+  var infoconColors = { green: 'var(--accent)', yellow: 'var(--warn)', orange: '#ffab40', red: 'var(--danger)' };
+  var ic = S.iscInfocon || {};
+  var icColor = infoconColors[(ic.status || '').toLowerCase()] || 'var(--dim)';
+  var html = '<div style="font-family:var(--mono);font-size:10px;color:var(--dim);margin-bottom:6px">INFOCON: <span style="color:' + icColor + '">' + (ic.status || 'N/A').toUpperCase() + '</span>' +
+    (S.ripeAtlas.activeProbes ? ' | RIPE PROBES: <span style="color:var(--accent)">' + S.ripeAtlas.activeProbes.toLocaleString() + '</span>' : '') + '</div>';
+  html += (S.ripeAtlas.measurements || []).map(function(m) {
+    return '<div class="econ-row"><span class="elabel" style="flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + (m.type || '') + ': ' + m.description.substring(0, 30) + '</span><span class="eval">' + m.participants + '</span></div>';
+  }).join('');
+  if (!ic.status && !S.ripeAtlas.activeProbes) html = noDataHtml;
+  el.innerHTML = html;
+}
+
+function updateTransport() {
+  var el = document.getElementById('panel-transport');
+  if (!el) return;
+  var html = '<div style="font-family:var(--mono);font-size:10px;color:var(--dim);margin-bottom:6px">';
+  if (S.ntsb.totalIncidents) html += 'INCIDENTS: <span style="color:var(--warn)">' + S.ntsb.totalIncidents + '</span>';
+  if (S.ntsb.fatalInjuries) html += ' | FATAL: <span style="color:var(--danger)">' + S.ntsb.fatalInjuries + '</span>';
+  if (S.adsb.totalMilitary) html += ' | MIL AIRCRAFT: <span style="color:var(--accent)">' + S.adsb.totalMilitary + '</span>';
+  html += '</div>';
+  html += S.ntsb.incidents.slice(0, 4).map(function(i) {
+    var sColor = i.fatalities > 0 ? 'var(--danger)' : 'var(--warn)';
+    return '<div class="econ-row"><span class="elabel" style="flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + (i.aircraft || 'Aircraft') + ' - ' + i.location.substring(0, 20) + '</span><span class="eval" style="color:' + sColor + '">' + (i.fatalities > 0 ? i.fatalities + ' KIA' : i.severity || 'Incident') + '</span></div>';
+  }).join('');
+  var cats = S.adsb.categories || {};
+  var catKeys = Object.keys(cats);
+  if (catKeys.length > 0) {
+    html += '<div style="font-family:var(--mono);font-size:9px;color:var(--dim);margin:6px 0 4px;letter-spacing:1px">MIL AIRCRAFT</div>';
+    html += catKeys.slice(0, 4).map(function(k) {
+      return '<div class="econ-row"><span class="elabel">' + k + '</span><span class="eval">' + (typeof cats[k] === 'number' ? cats[k] : (cats[k] || []).length) + '</span></div>';
+    }).join('');
+  }
+  if (!S.ntsb.totalIncidents && !S.adsb.totalMilitary) html = noDataHtml;
+  el.innerHTML = html;
+}
+
+function updateTrends() {
+  var el = document.getElementById('panel-trends');
+  if (!el) return;
+  var html = '';
+  if (S.gtrends && S.gtrends.length > 0) {
+    html += '<div style="font-family:var(--mono);font-size:9px;color:var(--dim);margin-bottom:4px;letter-spacing:1px">GOOGLE TRENDS</div>';
+    html += S.gtrends.slice(0, 6).map(function(t) {
+      return '<div class="econ-row"><span class="elabel" style="flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + t.query.substring(0, 30) + '</span><span class="eval">' + (t.traffic || '') + '</span></div>';
+    }).join('');
+  }
+  var domains = S.patents.domains || {};
+  var domainKeys = Object.keys(domains);
+  if (domainKeys.length > 0) {
+    html += '<div style="font-family:var(--mono);font-size:9px;color:var(--dim);margin:6px 0 4px;letter-spacing:1px">PATENT DOMAINS (' + S.patents.totalFound + ' total)</div>';
+    html += domainKeys.slice(0, 5).map(function(k) {
+      return '<div class="econ-row"><span class="elabel">' + k.toUpperCase() + '</span><span class="eval">' + domains[k] + '</span></div>';
+    }).join('');
+  }
+  if (!html) html = noDataHtml;
+  el.innerHTML = html;
+}
+
+function updateAsteroids() {
+  var el = document.getElementById('panel-asteroids');
+  if (!el) return;
+  var html = '<div style="font-family:var(--mono);font-size:10px;color:var(--dim);margin-bottom:6px">NEAR EARTH OBJECTS: <span style="color:var(--accent)">' + S.neo.totalObjects + '</span> | HAZARDOUS: <span style="color:' + (S.neo.hazardousCount > 0 ? 'var(--danger)' : 'var(--accent)') + '">' + S.neo.hazardousCount + '</span></div>';
+  html += S.neo.objects.slice(0, 6).map(function(o) {
+    var distFmt = o.distanceKm >= 1e6 ? (o.distanceKm / 1e6).toFixed(1) + 'M km' : (o.distanceKm / 1e3).toFixed(0) + 'K km';
+    var hColor = o.hazardous ? 'var(--danger)' : 'var(--dim)';
+    return '<div class="econ-row"><span class="elabel" style="flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + o.name.substring(0, 25) + '</span><span class="eval" style="color:' + hColor + '">' + distFmt + '</span></div>';
+  }).join('');
+  if (!S.neo.totalObjects) html = noDataHtml;
   el.innerHTML = html;
 }
 
@@ -979,6 +1329,13 @@ function updateAllPanels() {
   updateCyber();
   updateSpace();
   updateConflicts();
+  updateSanctions();
+  updateEconomy();
+  updateClimate();
+  updateNetwork();
+  updateTransport();
+  updateTrends();
+  updateAsteroids();
 }
 
 /* ================================================================
@@ -1690,7 +2047,9 @@ function updatePanelById(id) {
     energy: updateEnergy, news: updateNewsTicker, osint: updateOsint,
     delta: updateDelta, analysis: updateAnalysis, signals: updateSignals,
     quakes: updateQuakes, nuclear: updateNuclear, cyber: updateCyber,
-    space: updateSpace, conflicts: updateConflicts, globe: updateGlobe
+    space: updateSpace, conflicts: updateConflicts, globe: updateGlobe,
+    sanctions: updateSanctions, economy: updateEconomy, climate: updateClimate,
+    network: updateNetwork, transport: updateTransport, trends: updateTrends, asteroids: updateAsteroids
   };
   if (fnMap[id]) fnMap[id]();
 }

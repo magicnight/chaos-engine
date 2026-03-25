@@ -392,8 +392,8 @@ async fn events_handler(
     // GDELT articles -> conflict/news events
     if let Some(gdelt) = sources.get("GDELT") {
         if let Some(articles) = gdelt
-            .get("articles")
-            .or_else(|| gdelt.get("headlines"))
+            .get("allArticles")
+            .or_else(|| gdelt.get("articles"))
             .and_then(|a| a.as_array())
         {
             for (i, article) in articles.iter().enumerate() {
