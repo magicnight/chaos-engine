@@ -95,24 +95,46 @@ contract ChaosPredictionMarket is Ownable, ReentrancyGuard {
 
     /**
      * @dev Approximate exp(x) for x in fixed-point (scaled by SCALE).
-     * Uses Taylor series: 1 + x + x^2/2 + x^3/6 + x^4/24 + x^5/120
-     * Accurate for |x| < 5 * SCALE (which covers our use case).
+     * Uses range reduction + Taylor 12 terms for high precision.
+     * exp(x) = exp(k * ln2) * exp(r) where r = x - k * ln2, |r| < ln2/2
      */
     function _expApprox(int256 x) internal pure returns (uint256) {
-        if (x > 10 * int256(SCALE)) return type(uint256).max / 2; // cap overflow
-        if (x < -10 * int256(SCALE)) return 1; // near zero
+        // Clamp extreme values to prevent overflow/underflow
+        if (x > 40 * int256(SCALE)) return type(uint256).max / 2;
+        if (x < -40 * int256(SCALE)) return 1;
 
-        // Taylor expansion around 0 with 8 terms
+        // Range reduction: x = k * ln2 + r, |r| <= ln2/2
+        int256 ln2 = 693147180559945309; // ln(2) * 1e18
+        int256 k = x / ln2;
+        int256 r = x - k * ln2;
+
+        // Taylor series for exp(r) with 12 terms (accurate for |r| < ln2)
         int256 s = int256(SCALE);
         int256 term = s;
         int256 result = s;
 
-        for (uint256 i = 1; i <= 8; i++) {
-            term = (term * x) / (int256(i) * s);
+        for (uint256 i = 1; i <= 12; i++) {
+            term = (term * r) / (int256(i) * s);
             result += term;
         }
 
-        return result > 0 ? uint256(result) : 1;
+        if (result <= 0) return 1;
+
+        // Apply 2^k scaling
+        uint256 expR = uint256(result);
+        if (k >= 0) {
+            uint256 shift = uint256(k);
+            if (shift > 80) return type(uint256).max / 2; // overflow guard
+            expR = expR << shift;
+            // Compensate for 2^k vs exp(k*ln2) using: 2^k / exp(k*ln2) ≈ 1
+            // Since we used exact ln2, exp(k*ln2) = 2^k, so this is precise
+        } else {
+            uint256 shift = uint256(-k);
+            if (shift > 80) return 1;
+            expR = expR >> shift;
+        }
+
+        return expR > 0 ? expR : 1;
     }
 
     /**
@@ -150,17 +172,17 @@ contract ChaosPredictionMarket is Ownable, ReentrancyGuard {
         uint256 y = x;
         uint256 ln2 = 693147180559945309; // ln(2) * 1e18
 
-        // Reduce to range [SCALE, 2*SCALE)
-        while (y >= 2 * SCALE) {
+        // Reduce to range [SCALE, 2*SCALE) with bounded iterations
+        uint256 maxIter = 128; // covers up to 2^128 which is more than enough
+        for (uint256 i = 0; i < maxIter && y >= 2 * SCALE; i++) {
             y = y / 2;
             result += ln2;
         }
-        while (y < SCALE) {
+        for (uint256 i = 0; i < maxIter && y < SCALE; i++) {
             y = y * 2;
             if (result >= ln2) {
                 result -= ln2;
             } else {
-                // x < 1, return small value
                 return 0;
             }
         }
@@ -213,6 +235,14 @@ contract ChaosPredictionMarket is Ownable, ReentrancyGuard {
         uint256 deltaShares
     ) public view marketExists(marketId) returns (uint256) {
         Market storage m = markets[marketId];
+
+        // Guard against underflow
+        if (side == Side.Yes) {
+            require(m.yesShares >= deltaShares, "Exceeds total YES shares");
+        } else {
+            require(m.noShares >= deltaShares, "Exceeds total NO shares");
+        }
+
         uint256 costBefore = _lmsrCostFunction(m.yesShares, m.noShares);
 
         uint256 newYes = side == Side.Yes ? m.yesShares - deltaShares : m.yesShares;
@@ -224,6 +254,7 @@ contract ChaosPredictionMarket is Ownable, ReentrancyGuard {
 
     /**
      * @dev Current YES price (0 to SCALE).
+     * Returns SCALE/2 (0.5) when both sides have 0 shares (fair starting price).
      */
     function getYesPrice(uint256 marketId) public view marketExists(marketId) returns (uint256) {
         Market storage m = markets[marketId];
@@ -405,7 +436,11 @@ contract ChaosPredictionMarket is Ownable, ReentrancyGuard {
             payout = (pos.noShares * market.totalDeposited) / market.noShares;
         } else if (market.status == MarketStatus.Cancelled) {
             require(pos.totalCost > 0, "Nothing to refund");
+            // Cap refund at remaining pool to handle post-sell scenarios
             payout = pos.totalCost;
+            if (payout > market.totalDeposited) {
+                payout = market.totalDeposited;
+            }
         } else {
             revert("Market not resolved or cancelled");
         }
