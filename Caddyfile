@@ -1,0 +1,36 @@
+# CHAOS Engine + NewsPredict
+# Replace :80 with your domain for auto HTTPS: chaos.yourdomain.com
+#
+# With domain:  podman-compose up -d  (Caddy auto-provisions Let's Encrypt cert)
+# Without:      access via http://server-ip
+
+{$DOMAIN::80} {
+    # CHAOS Engine API + Dashboard
+    handle /api/v1/* {
+        reverse_proxy chaos:3117
+    }
+    handle /api/v1/sse {
+        reverse_proxy chaos:3117
+    }
+
+    # NewsPredict frontend (everything else)
+    handle {
+        reverse_proxy newspredict:3000
+    }
+
+    # Security headers
+    header {
+        X-Content-Type-Options nosniff
+        X-Frame-Options DENY
+        X-XSS-Protection "1; mode=block"
+        Referrer-Policy strict-origin-when-cross-origin
+        Strict-Transport-Security "max-age=31536000; includeSubDomains"
+    }
+
+    request_body {
+        max_size 1MB
+    }
+
+    # Gzip compression
+    encode gzip zstd
+}

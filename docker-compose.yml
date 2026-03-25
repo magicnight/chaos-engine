@@ -1,14 +1,85 @@
+# CHAOS Engine + NewsPredict — Production Deployment
+# Usage: podman-compose up -d (or docker compose up -d)
+#
+# Before starting:
+# 1. Copy .env.example to .env and configure
+# 2. Set DOMAIN in .env (or edit Caddyfile)
+# 3. Ensure ports 80/443 are open
+
 services:
-  chaos:
-    build: .
+  # Reverse proxy — auto HTTPS via Let's Encrypt
+  caddy:
+    image: caddy:2-alpine
     ports:
-      - "3117:3117"
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"  # HTTP/3
     volumes:
-      - ./runs:/data/runs
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - chaos
+      - newspredict
+    restart: unless-stopped
+
+  # CHAOS Engine — OSINT intelligence backend
+  chaos:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - chaos_data:/data/runs
     env_file: .env
-    working_dir: /data
+    environment:
+      - DATABASE_PATH=/data/runs/chaos.db
+    expose:
+      - "3117"
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "wget", "-q", "--spider", "http://localhost:3117/api/v1/health"]
       interval: 60s
       timeout: 10s
+
+  # NewsPredict — Prediction market frontend
+  newspredict:
+    build:
+      context: ./newspredict
+      dockerfile: Dockerfile
+    env_file: .env
+    environment:
+      - CHAOS_API_URL=http://chaos:3117
+      - DATABASE_URL=postgresql://chaos:chaos_secret@postgres:5432/newspredict
+      - NEXTAUTH_URL=${DOMAIN:-http://localhost}
+    expose:
+      - "3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      chaos:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # PostgreSQL — NewsPredict database
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: chaos
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-chaos_secret}
+      POSTGRES_DB: newspredict
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    expose:
+      - "5432"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U chaos -d newspredict"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  caddy_data:
+  caddy_config:
+  chaos_data:
+  pg_data:
