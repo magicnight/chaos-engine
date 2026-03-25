@@ -176,15 +176,23 @@ pub async fn full_sweep(
     config: &Config,
 ) -> Value {
     let sources = build_sources(client);
-    let timeout = Duration::from_secs(config.source_timeout_secs);
+    let base_timeout = config.source_timeout_secs;
     let start = Instant::now();
 
     tracing::info!(source_count = sources.len(), "Starting intelligence sweep");
 
-    // 1. Run all sources in parallel
+    // 1. Run all sources in parallel with tier-based timeouts
+    //    T1 (core): full timeout, T2 (economic): 80%, T3+ (supplementary): 50%
     let futures: Vec<_> = sources
         .iter()
-        .map(|src| run_source(src.as_ref(), timeout))
+        .map(|src| {
+            let secs = match src.tier() {
+                1 => base_timeout,
+                2 => base_timeout * 4 / 5,
+                _ => base_timeout / 2,
+            };
+            run_source(src.as_ref(), Duration::from_secs(secs))
+        })
         .collect();
     let results = join_all(futures).await;
 

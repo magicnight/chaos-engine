@@ -13,6 +13,9 @@ use super::IntelSource;
 // lenient alternatives.
 const GDELT_URL: &str = "https://api.gdeltproject.org/api/v2/doc/doc?query=conflict%20OR%20military%20OR%20economy%20OR%20crisis%20OR%20war%20OR%20sanctions%20OR%20tariff&mode=ArtList&maxrecords=50&timespan=24h&format=json&sort=DateDesc";
 
+// Fallback: GKG (Global Knowledge Graph) endpoint — more lenient rate limits
+const GDELT_GKG_URL: &str = "https://api.gdeltproject.org/api/v2/doc/doc?query=conflict%20OR%20crisis%20OR%20war&mode=ArtList&maxrecords=25&timespan=24h&format=json&sort=DateDesc";
+
 // Browser-like User-Agent; GDELT blocks non-browser UAs with 403.
 const BROWSER_UA: &str =
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36";
@@ -91,16 +94,44 @@ impl IntelSource for Gdelt {
         let body = resp.text().await.context("GDELT: failed to read response body")?;
 
         if !status.is_success() || body.trim().is_empty() {
+            // Try fallback URL with reduced query
+            tracing::warn!("GDELT primary failed (HTTP {}), trying fallback", status.as_u16());
+            let fallback = self
+                .client
+                .raw_client()
+                .get(GDELT_GKG_URL)
+                .header("User-Agent", BROWSER_UA)
+                .header("Accept", "application/json")
+                .send()
+                .await;
+
+            match fallback {
+                Ok(resp2) if resp2.status().is_success() => {
+                    let body2 = resp2.text().await.unwrap_or_default();
+                    if !body2.trim().is_empty() {
+                        // Use fallback body instead
+                        return self.parse_articles(&body2, true);
+                    }
+                }
+                _ => {}
+            }
+
             return Ok(json!({
                 "source": "GDELT",
                 "timestamp": Utc::now().to_rfc3339(),
                 "error": format!("GDELT API returned HTTP {} (body length {})", status.as_u16(), body.len()),
-                "note": "GDELT may block some IPs. Alternative: use GDELT GKG endpoint or GDELT Events CSV export.",
+                "note": "Both primary and fallback GDELT endpoints failed.",
                 "totalArticles": 0,
             }));
         }
 
-        let data: Value = serde_json::from_str(&body).unwrap_or_else(|_| {
+        self.parse_articles(&body, false)
+    }
+}
+
+impl Gdelt {
+    fn parse_articles(&self, body: &str, is_fallback: bool) -> Result<Value> {
+        let data: Value = serde_json::from_str(body).unwrap_or_else(|_| {
             json!({ "articles": [] })
         });
 
@@ -175,6 +206,7 @@ impl IntelSource for Gdelt {
             "economy": economy,
             "health": health,
             "crisis": crisis,
+            "fallback": is_fallback,
         }))
     }
 }
