@@ -24,7 +24,7 @@ export function NewsPredictionCard({
   const Wrapper = href ? Link : 'div';
   const wrapperProps = href ? { href } : {};
   return (
-    <Wrapper {...wrapperProps as any} className="flex gap-3 bg-[var(--card)] rounded-xl p-3 hover:bg-[var(--card-hover)] transition-colors block">
+    <Wrapper {...wrapperProps as any} className="flex gap-3 card p-3 animate-fade-in block">
       <div
         className="w-[72px] h-[72px] rounded-lg shrink-0"
         style={{
@@ -32,17 +32,26 @@ export function NewsPredictionCard({
             ? `url(${imageUrl}) center/cover`
             : 'linear-gradient(135deg, #1a2332, #0b1220)',
         }}
-      />
+      >
+        <div className="w-full h-full rounded-lg flex items-center justify-center text-lg opacity-40">
+          {category[0]}
+        </div>
+      </div>
       <div className="flex-1 min-w-0">
-        <p className="text-[10px] text-[var(--accent)] font-medium uppercase tracking-wide mb-0.5">
-          {category}
-        </p>
-        <h4 className="text-sm font-semibold leading-tight line-clamp-2 mb-1.5">{title}</h4>
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-semibold text-[var(--success)]">YES {yesPercent}%</span>
+        <div className="flex items-center gap-1.5 mb-0.5">
+          <span className="text-[10px] text-[var(--accent)] font-semibold uppercase tracking-wide">
+            {category}
+          </span>
+          {isHot && <span className="badge badge-hot">HOT</span>}
+        </div>
+        <h4 className="text-sm font-semibold leading-tight line-clamp-2 mb-2">{title}</h4>
+        <div className="flex items-center gap-2 mb-1.5">
+          <span className="text-xs font-bold text-[var(--success)] font-mono">YES {yesPercent}%</span>
           <span className="text-[var(--border)]">|</span>
-          <span className="text-xs font-semibold text-[var(--danger)]">NO {noPercent}%</span>
-          {isHot && <span className="text-xs ml-auto">Hot</span>}
+          <span className="text-xs font-bold text-[var(--danger)] font-mono">NO {noPercent}%</span>
+        </div>
+        <div className="pct-bar">
+          <div className="pct-bar-fill bg-[var(--success)]" style={{ width: `${yesPercent}%` }} />
         </div>
       </div>
     </Wrapper>
