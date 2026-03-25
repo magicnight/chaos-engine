@@ -328,8 +328,13 @@ pub async fn full_sweep(
                 model_override: None,
             };
 
-            match provider.complete(system_prompt, &user_message, &opts).await {
-                Ok(response) => {
+            let llm_result = tokio::time::timeout(
+                Duration::from_secs(60),
+                provider.complete(system_prompt, &user_message, &opts),
+            ).await;
+
+            match llm_result {
+                Ok(Ok(response)) => {
                     output["analysis"] = json!({
                         "text": response.text,
                         "model": response.model,
@@ -358,9 +363,13 @@ pub async fn full_sweep(
                         "LLM analysis complete"
                     );
                 }
-                Err(e) => {
+                Ok(Err(e)) => {
                     tracing::error!(error = %e, "LLM analysis failed");
                     output["analysis"] = json!({ "error": e.to_string() });
+                }
+                Err(_) => {
+                    tracing::error!("LLM analysis timed out after 60s");
+                    output["analysis"] = json!({ "error": "LLM analysis timed out after 60s" });
                 }
             }
         }

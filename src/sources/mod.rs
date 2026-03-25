@@ -13,6 +13,7 @@ pub mod ecb;
 pub mod eia;
 pub mod epa;
 pub mod eu_sanctions;
+pub mod exchange_rates;
 pub mod firms;
 pub mod fred;
 pub mod gdacs;
@@ -34,6 +35,7 @@ pub mod safecast;
 pub mod sanctions;
 pub mod ships;
 pub mod swpc;
+pub mod tech_status;
 pub mod telegram;
 pub mod treasury;
 pub mod tsunami;
@@ -153,6 +155,7 @@ pub fn build_sources(client: &HttpClient) -> Vec<Box<dyn IntelSource>> {
         Box::new(comtrade::Comtrade::new(client.clone())),
         Box::new(ecb::Ecb::new(client.clone())),
         Box::new(eia::Eia::new(client.clone())),
+        Box::new(exchange_rates::ExchangeRates::new(client.clone())),
         Box::new(fred::Fred::new(client.clone())),
         Box::new(gscpi::Gscpi::new(client.clone())),
         Box::new(treasury::Treasury::new(client.clone())),
@@ -175,6 +178,7 @@ pub fn build_sources(client: &HttpClient) -> Vec<Box<dyn IntelSource>> {
         Box::new(patents::Patents::new(client.clone())),
         Box::new(reddit::Reddit::new(client.clone())),
         Box::new(ripe_atlas::RipeAtlas::new(client.clone())),
+        Box::new(tech_status::TechStatus::new(client.clone())),
         // Tier 4
         Box::new(celestrak::CelesTrak::new(client.clone())),
         // Tier 5

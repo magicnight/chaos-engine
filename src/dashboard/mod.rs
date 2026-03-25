@@ -847,6 +847,140 @@ async fn market_seeds_handler(
         }
     }
 
+    // Seed 13: VIX from YFinance (always available)
+    if let Some(yf) = sources.get("YFinance") {
+        if let Some(vix) = yf.get("quotes").and_then(|q| q.get("^VIX")).and_then(|v| v.get("price")).and_then(|p| p.as_f64()) {
+            let question = if vix > 25.0 {
+                format!("Will VIX drop below 20 this week? (currently {:.1})", vix)
+            } else {
+                format!("Will VIX exceed 25 this week? (currently {:.1})", vix)
+            };
+            seeds.push(json!({
+                "id": simple_hash(&format!("vix_yf_{}", vix as u32)),
+                "question": question,
+                "category": "economics",
+                "options": ["YES", "NO"],
+                "resolution_criteria": "VIX closing value vs threshold",
+                "resolution_source": "yfinance:^VIX",
+                "confidence": 0.5,
+                "context": format!("VIX at {:.1}", vix),
+                "suggested_end_time": end_7d,
+            }));
+        }
+
+        // Seed 14: Gold price
+        if let Some(gold) = yf.get("quotes").and_then(|q| q.get("GC=F")).and_then(|v| v.get("price")).and_then(|p| p.as_f64()) {
+            if gold > 0.0 {
+                let target = ((gold / 100.0).round() * 100.0 + 100.0) as u64;
+                seeds.push(json!({
+                    "id": simple_hash(&format!("gold_{}", target)),
+                    "question": format!("Will gold exceed ${} this week?", target),
+                    "category": "economics",
+                    "options": ["YES", "NO"],
+                    "resolution_criteria": format!("Gold futures (GC=F) price > ${}", target),
+                    "resolution_source": "yfinance:GC=F",
+                    "confidence": 0.45,
+                    "context": format!("Gold at ${:.0}", gold),
+                    "suggested_end_time": end_7d,
+                }));
+            }
+        }
+    }
+
+    // Seed 15: Exchange rate volatility
+    if let Some(fx) = sources.get("ExchangeRates") {
+        if let Some(tracked) = fx.get("tracked").and_then(|t| t.as_array()) {
+            for rate_info in tracked.iter().take(2) {
+                let currency = rate_info.get("currency").and_then(|c| c.as_str()).unwrap_or("");
+                let name = rate_info.get("name").and_then(|n| n.as_str()).unwrap_or("");
+                let rate = rate_info.get("rate").and_then(|r| r.as_f64()).unwrap_or(0.0);
+                if rate > 0.0 && !currency.is_empty() {
+                    seeds.push(json!({
+                        "id": simple_hash(&format!("fx_{}_{}", currency, (rate * 100.0) as u64)),
+                        "question": format!("Will {} ({}) weaken more than 2% vs USD this month?", name, currency),
+                        "category": "economics",
+                        "options": ["YES", "NO"],
+                        "resolution_criteria": format!("{}/USD rate increases > 2% from {:.2}", currency, rate),
+                        "resolution_source": "exchange-rates",
+                        "confidence": 0.4,
+                        "context": format!("{} at {:.2} per USD", currency, rate),
+                        "suggested_end_time": end_30d,
+                    }));
+                }
+            }
+        }
+    }
+
+    // Seed 16: Tech platform outage
+    if let Some(ts) = sources.get("TechStatus") {
+        let incidents = ts.get("incidents").and_then(|i| i.as_u64()).unwrap_or(0);
+        if incidents > 0 {
+            seeds.push(json!({
+                "id": simple_hash(&format!("tech_incident_{}", incidents)),
+                "question": "Will a major tech platform (GitHub/Cloudflare/OpenAI) experience a >1hr outage this week?",
+                "category": "technology",
+                "options": ["YES", "NO"],
+                "resolution_criteria": "Any monitored platform reports major outage > 1 hour",
+                "resolution_source": "tech-status",
+                "confidence": 0.3,
+                "context": format!("{} platforms currently degraded", incidents),
+                "suggested_end_time": end_7d,
+            }));
+        }
+    }
+
+    // Seed 17: Earthquake (lower threshold — always trigger if any quakes)
+    if let Some(usgs) = sources.get("USGS") {
+        let count = usgs.get("totalQuakes").and_then(|c| c.as_u64()).unwrap_or(0);
+        if count > 0 {
+            let max_mag = usgs.get("maxMagnitude").and_then(|m| m.as_f64()).unwrap_or(0.0);
+            if max_mag < 5.0 {
+                // Lower threshold seed when no M5+ quakes
+                seeds.push(json!({
+                    "id": simple_hash(&format!("quake_low_{}", count)),
+                    "question": format!("Will a M5.0+ earthquake occur in the next 7 days?"),
+                    "category": "science",
+                    "options": ["YES", "NO"],
+                    "resolution_criteria": "USGS reports M5.0+ earthquake within 7 days",
+                    "resolution_source": "usgs",
+                    "confidence": 0.55,
+                    "context": format!("{} quakes tracked, max M{:.1}", count, max_mag),
+                    "suggested_end_time": end_7d,
+                }));
+            }
+        }
+    }
+
+    // === FALLBACK: guarantee minimum 5 seeds ===
+    if seeds.len() < 5 {
+        let fallback_questions = [
+            ("Will global stock markets end the week higher?", "economics", "Major indices (SPY, FTSE, Nikkei) weekly close vs open"),
+            ("Will any country announce new economic sanctions this week?", "geopolitics", "Official government sanctions announcement"),
+            ("Will a cybersecurity incident affecting >1M users be disclosed this week?", "technology", "Public disclosure of data breach or cyberattack"),
+            ("Will crude oil prices change more than 5% this week?", "economics", "WTI or Brent crude weekly price change > 5%"),
+            ("Will a new disease outbreak be reported by WHO this month?", "health", "WHO Disease Outbreak News publication"),
+            ("Will any cryptocurrency enter the top 10 by market cap this week?", "economics", "CoinGecko top 10 ranking change"),
+            ("Will a major weather event cause >$1B in damages this month?", "environment", "NOAA or insurance industry damage estimate"),
+        ];
+        for (question, category, criteria) in &fallback_questions {
+            if seeds.len() >= 8 { break; }
+            let id = simple_hash(question);
+            let already = seeds.iter().any(|s| s.get("id").and_then(|i| i.as_str()) == Some(&id));
+            if !already {
+                seeds.push(json!({
+                    "id": id,
+                    "question": question,
+                    "category": category,
+                    "options": ["YES", "NO"],
+                    "resolution_criteria": criteria,
+                    "confidence": 0.5,
+                    "context": "Template seed — generated when insufficient data-driven seeds",
+                    "suggested_end_time": end_7d,
+                }));
+            }
+        }
+    }
+
     // LLM-generated seeds (if available, merge with rule-based seeds)
     if let Some(ref llm) = state.llm {
         if llm.is_configured() {
