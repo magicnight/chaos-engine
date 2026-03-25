@@ -697,6 +697,156 @@ async fn market_seeds_handler(
         }
     }
 
+    // Seed 6: BTC price movement
+    if let Some(yf) = sources.get("YFinance") {
+        if let Some(btc) = yf.get("quotes").and_then(|q| q.get("BTC-USD")) {
+            let price = btc.get("price").and_then(|p| p.as_f64()).unwrap_or(0.0);
+            if price > 0.0 {
+                let threshold = ((price / 5000.0).round() * 5000.0 + 5000.0) as u64;
+                seeds.push(json!({
+                    "id": simple_hash(&format!("btc_{}", threshold)),
+                    "question": format!("Will BTC exceed ${} this week?", threshold),
+                    "category": "economics",
+                    "options": ["YES", "NO"],
+                    "resolution_criteria": format!("BTC-USD price > ${} on any exchange", threshold),
+                    "resolution_source": "yfinance:BTC-USD",
+                    "confidence": 0.45,
+                    "context": format!("BTC currently at ${:.0}", price),
+                    "suggested_end_time": end_7d,
+                }));
+            }
+        }
+    }
+
+    // Seed 7: WHO disease outbreak
+    if let Some(who) = sources.get("WHO") {
+        let alert_count = who.get("alerts").and_then(|a| a.as_array()).map(|a| a.len()).unwrap_or(0);
+        if alert_count > 0 {
+            let title = who.get("alerts")
+                .and_then(|a| a.as_array())
+                .and_then(|arr| arr.first())
+                .and_then(|a| a.get("title"))
+                .and_then(|t| t.as_str())
+                .unwrap_or("disease outbreak");
+            let short_title: String = title.chars().take(60).collect();
+            seeds.push(json!({
+                "id": simple_hash(&format!("who_{}", alert_count)),
+                "question": format!("Will WHO issue more than {} outbreak alerts next week?", alert_count),
+                "category": "health",
+                "options": ["YES", "NO"],
+                "resolution_criteria": format!("WHO outbreak news count > {}", alert_count),
+                "resolution_source": "who",
+                "confidence": 0.5,
+                "context": format!("{} alerts active, latest: {}", alert_count, short_title),
+                "suggested_end_time": end_7d,
+            }));
+        }
+    }
+
+    // Seed 8: CoinGecko crypto volatility
+    if let Some(cg) = sources.get("CoinGecko") {
+        if let Some(coins) = cg.get("coins").and_then(|c| c.as_array()) {
+            let big_movers: Vec<&Value> = coins.iter()
+                .filter(|c| c.get("change24h").and_then(|v| v.as_f64()).map(|v| v.abs() > 5.0).unwrap_or(false))
+                .collect();
+            if !big_movers.is_empty() {
+                let coin = big_movers[0];
+                let name = coin.get("name").and_then(|n| n.as_str()).unwrap_or("crypto");
+                let change = coin.get("change24h").and_then(|v| v.as_f64()).unwrap_or(0.0);
+                let direction = if change > 0.0 { "continue rising" } else { "recover" };
+                seeds.push(json!({
+                    "id": simple_hash(&format!("crypto_{}_{}", name, change as i32)),
+                    "question": format!("Will {} {} over the next 7 days?", name, direction),
+                    "category": "economics",
+                    "options": ["YES", "NO"],
+                    "resolution_criteria": format!("{} 7-day price trend matches direction", name),
+                    "resolution_source": "coingecko",
+                    "confidence": 0.45,
+                    "context": format!("{} moved {:.1}% in 24h", name, change),
+                    "suggested_end_time": end_7d,
+                }));
+            }
+        }
+    }
+
+    // Seed 9: NASA NEO hazardous objects
+    if let Some(neo) = sources.get("NASA-NEO") {
+        let hazardous = neo.get("hazardousCount").and_then(|v| v.as_u64()).unwrap_or(0);
+        let total = neo.get("elementCount").and_then(|v| v.as_u64()).unwrap_or(0);
+        if total > 0 {
+            seeds.push(json!({
+                "id": simple_hash(&format!("neo_{}", total)),
+                "question": format!("Will NASA track more than {} near-Earth objects next week?", total),
+                "category": "science",
+                "options": ["YES", "NO"],
+                "resolution_criteria": format!("NASA NEO count > {}", total),
+                "resolution_source": "nasa-neo",
+                "confidence": 0.5,
+                "context": format!("{} NEOs tracked, {} hazardous", total, hazardous),
+                "suggested_end_time": end_7d,
+            }));
+        }
+    }
+
+    // Seed 10: GDELT news volume
+    if let Some(gdelt) = sources.get("GDELT") {
+        let article_count = gdelt.get("totalArticles").and_then(|v| v.as_u64()).unwrap_or(0);
+        if article_count > 10 {
+            seeds.push(json!({
+                "id": simple_hash(&format!("gdelt_{}", article_count)),
+                "question": "Will global conflict news volume increase next week?",
+                "category": "geopolitics",
+                "options": ["YES", "NO"],
+                "resolution_criteria": format!("GDELT conflict article count > {}", article_count),
+                "resolution_source": "gdelt",
+                "confidence": 0.5,
+                "context": format!("{} conflict-related articles in last 24h", article_count),
+                "suggested_end_time": end_7d,
+            }));
+        }
+    }
+
+    // Seed 11: SPY market direction
+    if let Some(yf) = sources.get("YFinance") {
+        if let Some(spy) = yf.get("quotes").and_then(|q| q.get("SPY")) {
+            let price = spy.get("price").and_then(|p| p.as_f64()).unwrap_or(0.0);
+            let change_pct = spy.get("changePct").or(spy.get("change_pct")).and_then(|p| p.as_f64()).unwrap_or(0.0);
+            if price > 0.0 {
+                let direction = if change_pct >= 0.0 { "gain" } else { "lose" };
+                seeds.push(json!({
+                    "id": simple_hash(&format!("spy_{}", price as u32)),
+                    "question": format!("Will S&P 500 {} more than 1% this week?", direction),
+                    "category": "economics",
+                    "options": ["YES", "NO"],
+                    "resolution_criteria": format!("SPY weekly change > 1% in {} direction", direction),
+                    "resolution_source": "yfinance:SPY",
+                    "confidence": 0.5,
+                    "context": format!("SPY at ${:.2}, today {:.2}%", price, change_pct),
+                    "suggested_end_time": end_7d,
+                }));
+            }
+        }
+    }
+
+    // Seed 12: CISA-KEV cyber threats
+    if let Some(kev) = sources.get("CISA-KEV") {
+        let recent = kev.get("recentAdditions").and_then(|v| v.as_u64()).unwrap_or(0);
+        let ransomware = kev.get("ransomwareLinked").and_then(|v| v.as_u64()).unwrap_or(0);
+        if recent > 0 {
+            seeds.push(json!({
+                "id": simple_hash(&format!("kev_{}", recent)),
+                "question": format!("Will CISA add more than {} new KEV entries next week?", recent),
+                "category": "technology",
+                "options": ["YES", "NO"],
+                "resolution_criteria": format!("CISA-KEV new additions > {}", recent),
+                "resolution_source": "cisa-kev",
+                "confidence": 0.5,
+                "context": format!("{} new KEV entries this week, {} ransomware-linked", recent, ransomware),
+                "suggested_end_time": end_7d,
+            }));
+        }
+    }
+
     Json(json!({ "seeds": seeds })).into_response()
 }
 

@@ -1,29 +1,32 @@
 'use client';
 
 import { useState } from 'react';
+import useSWR from 'swr';
 import { CategoryPills } from '@/components/layout/category-pills';
 import { NewsPredictionCard } from '@/components/cards/news-prediction-card';
 
-const MOCK_MARKETS = [
-  { title: 'Will the Fed cut rates in June 2026?', category: 'Markets', yesPercent: 62, noPercent: 38 },
-  { title: 'Will China invade Taiwan by 2027?', category: 'Conflict', yesPercent: 12, noPercent: 88 },
-  { title: 'Will GPT-5 launch before September?', category: 'Tech', yesPercent: 74, noPercent: 26, isHot: true },
-  { title: 'Will oil prices exceed $100/barrel?', category: 'Markets', yesPercent: 45, noPercent: 55 },
-  { title: 'Will WHO declare new pandemic by 2027?', category: 'Health', yesPercent: 18, noPercent: 82 },
-  { title: 'Will SpaceX Starship reach orbit this quarter?', category: 'Space', yesPercent: 81, noPercent: 19, isHot: true },
-  { title: 'Will EU pass AI Act enforcement rules?', category: 'Politics', yesPercent: 67, noPercent: 33 },
-  { title: 'Major ransomware attack on US infrastructure?', category: 'Cyber', yesPercent: 39, noPercent: 61 },
-];
+const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
 export default function ExplorePage() {
   const [query, setQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
 
-  const filtered = MOCK_MARKETS.filter((m: any) => {
-    const matchesQuery = !query || m.title.toLowerCase().includes(query.toLowerCase());
+  const { data: markets, isLoading } = useSWR('/api/markets?status=open&limit=50', fetcher, {
+    refreshInterval: 30000,
+    fallbackData: [],
+  });
+
+  const filtered = (Array.isArray(markets) ? markets : []).filter((m: any) => {
+    const matchesQuery = !query || m.question?.toLowerCase().includes(query.toLowerCase());
     const matchesCategory = selectedCategory === 'All' || m.category === selectedCategory;
     return matchesQuery && matchesCategory;
-  });
+  }).map((m: any) => ({
+    title: m.question || '',
+    category: m.category || 'General',
+    yesPercent: Math.round((m.yesPrice || 0.5) * 100),
+    noPercent: Math.round((m.noPrice || 0.5) * 100),
+    isHot: m.volume > 100,
+  }));
 
   return (
     <div>
@@ -39,7 +42,10 @@ export default function ExplorePage() {
       </div>
       <CategoryPills onSelect={setSelectedCategory} />
       <div className="px-4 space-y-3 mt-2">
-        {filtered.length === 0 && (
+        {isLoading && (
+          <p className="text-sm text-[var(--muted)] text-center py-8">Loading markets...</p>
+        )}
+        {!isLoading && filtered.length === 0 && (
           <p className="text-sm text-[var(--muted)] text-center py-8">No markets found</p>
         )}
         {filtered.map((m: any) => (

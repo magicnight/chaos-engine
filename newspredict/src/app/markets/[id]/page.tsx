@@ -6,7 +6,7 @@ import { eq, desc } from 'drizzle-orm';
 import { getPrice } from '@/lib/market-engine';
 import { MarketDetailClient } from './client';
 
-export const revalidate = 15;
+export const dynamic = 'force-dynamic';
 
 export default async function MarketDetailPage({
   params,

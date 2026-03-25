@@ -4,7 +4,7 @@ import { markets } from '@/lib/db/schema';
 import { eq, desc } from 'drizzle-orm';
 import { getPrice } from '@/lib/market-engine';
 
-export const revalidate = 30;
+export const dynamic = 'force-dynamic';
 
 function formatVolume(v: number): string {
   if (v >= 1_000_000) return `$${(v / 1_000_000).toFixed(1)}M`;

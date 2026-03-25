@@ -4,16 +4,27 @@ import { markets } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { chaosClient } from '@/lib/chaos-client';
 
-interface MarketSeed {
+interface RawSeed {
   id: string;
   question: string;
   description?: string;
   category: string;
-  closeAt: string;
-  resolutionCriteria: string;
+  closeAt?: string;
+  suggested_end_time?: string;
+  resolutionCriteria?: string;
+  resolution_criteria?: string;
   resolutionSource?: string;
+  resolution_source?: string;
   tags?: string[];
   relatedSources?: string[];
+}
+
+function parseCloseAt(seed: RawSeed): Date {
+  const raw = seed.closeAt || seed.suggested_end_time || '';
+  const d = new Date(raw);
+  if (!isNaN(d.getTime())) return d;
+  // Fallback: 7 days from now
+  return new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 }
 
 export async function GET(request: NextRequest) {
@@ -23,7 +34,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     const data = await chaosClient.getMarketSeeds();
-    const seeds = (data as { seeds: MarketSeed[] }).seeds || [];
+    const seeds = (data as { seeds: RawSeed[] }).seeds || [];
 
     const created: string[] = [];
 
@@ -41,9 +52,9 @@ export async function GET(request: NextRequest) {
           question: seed.question,
           description: seed.description || null,
           category: seed.category,
-          closeAt: new Date(seed.closeAt),
-          resolutionCriteria: seed.resolutionCriteria,
-          resolutionSource: seed.resolutionSource || null,
+          closeAt: parseCloseAt(seed),
+          resolutionCriteria: seed.resolutionCriteria || seed.resolution_criteria || seed.question,
+          resolutionSource: seed.resolutionSource || seed.resolution_source || null,
           crucixSeedId: seed.id,
           creatorType: 'system',
           tags: seed.tags || null,
