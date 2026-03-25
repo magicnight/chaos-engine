@@ -1,11 +1,14 @@
 'use client';
 
+import Link from 'next/link';
+
 interface MarketMiniCardProps {
   label: string;
   yesPercent: number;
   price: string;
   change: string;
   icon?: string;
+  href?: string;
 }
 
 export function MarketMiniCard({
@@ -14,12 +17,15 @@ export function MarketMiniCard({
   price,
   change,
   icon,
+  href,
 }: MarketMiniCardProps) {
   const noPercent = 100 - yesPercent;
   const isPositive = change.startsWith('+');
+  const Wrapper = href ? Link : 'div';
+  const wrapperProps = href ? { href } : {};
 
   return (
-    <div className="w-[130px] shrink-0 bg-[var(--card)] rounded-xl p-3">
+    <Wrapper {...wrapperProps as any} className="w-[130px] shrink-0 bg-[var(--card)] rounded-xl p-3 hover:ring-1 hover:ring-[var(--accent)]/30 transition-all block">
       <p className="text-xs text-[var(--muted)] mb-2 truncate">
         {icon && <span className="mr-1">{icon}</span>}
         {label}
@@ -55,6 +61,6 @@ export function MarketMiniCard({
           {change}
         </span>
       </div>
-    </div>
+    </Wrapper>
   );
 }

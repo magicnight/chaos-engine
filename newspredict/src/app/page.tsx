@@ -43,6 +43,16 @@ export default async function HomePage() {
     getBreakingNews(),
   ]);
 
+  // Auto-seed from CHAOS if few markets exist
+  if (Array.isArray(openMarkets) && openMarkets.length < 3) {
+    try {
+      await fetch(`${API_BASE}/api/market-seeds`, {
+        headers: { 'x-cron-secret': process.env.CRON_SECRET || '' },
+        cache: 'no-store',
+      });
+    } catch {}
+  }
+
   const markets = Array.isArray(openMarkets) ? openMarkets : [];
   const resolved = Array.isArray(resolvedMarkets) ? resolvedMarkets : [];
 
@@ -53,6 +63,7 @@ export default async function HomePage() {
     price: (m.yesPrice || 0.5).toFixed(2),
     change: m.volume > 0 ? `$${m.volume}` : 'New',
     icon: (m.category || 'M')[0],
+    href: `/markets/${m.id}`,
   }));
   const trending = markets.slice(0, 4).map((m: any) => ({
     title: m.question || '',
