@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useAccount } from 'wagmi';
 import { formatUnits } from 'viem';
-import { useCruxBalance, useApproveToken, useBuyShares } from '@/lib/web3/hooks';
+import { useChaosBalance, useApproveToken, useBuyShares, useSellShares } from '@/lib/web3/hooks';
 import { CONTRACTS } from '@/lib/web3/contracts';
 
 type TradeMode = 'virtual' | 'onchain';
@@ -51,7 +51,7 @@ export function OrderPanel({ marketId, yesPrice, noPrice, onchainMarketId, onTra
   const [mode, setMode] = useState<TradeMode>('virtual');
 
   const { isConnected, chain } = useAccount();
-  const { balance: cruxBalance, refetch: refetchBalance } = useCruxBalance();
+  const { balance: cruxBalance, refetch: refetchBalance } = useChaosBalance();
   const { approve, isPending: approving, isConfirming: approveConfirming, isSuccess: approveSuccess, hash: approveHash } = useApproveToken();
   const { buy, isPending: buying, isConfirming: buyConfirming, isSuccess: buySuccess, hash: buyHash } = useBuyShares();
 
