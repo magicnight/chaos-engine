@@ -357,36 +357,117 @@ Full specification: [`docs/api.md`](docs/api.md) | [`docs/openapi.yaml`](docs/op
 
 ## Deployment
 
-### Docker (recommended)
+### Production (Podman / Docker Compose)
+
+Full-stack deployment: CHAOS Engine + NewsPredict + PostgreSQL + Caddy reverse proxy.
 
 ```bash
-cp .env.example .env              # configure API keys
-docker compose up -d              # builds and starts on :3117
+git clone https://github.com/magicnight/chaos-engine.git && cd chaos-engine
+cp .env.example .env              # configure (see below)
+podman-compose up -d              # or: docker compose up -d
 ```
 
-### Binary + Reverse Proxy
+This starts 4 services:
+
+```
+Internet → Caddy (:80/:443, auto HTTPS)
+             ├─ /api/v1/*  → CHAOS Engine (:3117)
+             └─ /*         → NewsPredict (:3000)
+                                └─ PostgreSQL (:5432)
+```
+
+**With a domain** (auto HTTPS):
+```bash
+# In .env:
+DOMAIN=chaos.yourdomain.com
+# Caddy automatically provisions Let's Encrypt certificate
+```
+
+**Without a domain** (HTTP only):
+```bash
+# Leave DOMAIN empty in .env — accessible via http://server-ip
+```
+
+### CHAOS Engine Only (no frontend)
 
 ```bash
 cargo build --release
-# Run behind Caddy, Nginx, or similar
 ./target/release/chaos serve --public --api-key YOUR_SECRET --port 3117
 ```
 
-A [`Caddyfile.example`](Caddyfile.example) is included for reference.
+### Configuration
 
-### Environment
+Copy `.env.example` to `.env` and configure. All variables are optional unless noted.
+
+#### Core
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `DATABASE_PATH` | `./chaos.db` | SQLite database location |
+| `DOMAIN` | *(empty)* | Your domain for auto HTTPS (e.g. `chaos.example.com`) |
+| `POSTGRES_PASSWORD` | `chaos_secret` | PostgreSQL password — **change in production** |
+| `REFRESH_INTERVAL_MINUTES` | `15` | OSINT sweep interval |
+| `SOURCE_TIMEOUT_SECS` | `30` | Per-source timeout (T1: 100%, T2: 80%, T3: 50%) |
+
+#### LLM (optional — enables AI analysis and richer market seeds)
+
+| Variable | Example | Description |
+|----------|---------|-------------|
+| `LLM_PROVIDER` | `openai` | Primary: openai, anthropic, gemini, ollama, deepseek, zhipuai, openrouter, mistral, minimax |
+| `LLM_API_KEY` | | API key for primary provider |
+| `DEFAULT_MODEL` | `gpt-4o` | Model name |
+| `SWEEP_LANG` | `en` | Briefing language: en, zh, ja, es |
+| `FALLBACK_PROVIDER` | `gemini` | Fallback provider (auto-failover) |
+| `FALLBACK_MODEL` | `gemini-2.0-flash` | Fallback model |
+| `OLLAMA_URL` | `http://localhost:11434` | Local Ollama URL (zero-cloud fallback) |
+| `OLLAMA_MODEL` | `qwen3:8b` | Local model name |
+
+#### Data Source API Keys (optional — more keys = more sources)
+
+| Variable | Source | Free? |
+|----------|--------|:-----:|
+| `FRED_API_KEY` | Federal Reserve Economic Data | Yes |
+| `FIRMS_MAP_KEY` | NASA Fire Detection | Yes |
+| `EIA_API_KEY` | US Energy Information | Yes |
+| `WORLDNEWS_API_KEY` | World News API | Yes |
+| `ACLED_EMAIL` + `ACLED_PASSWORD` | Armed Conflict Data | Yes |
+| `CLOUDFLARE_API_TOKEN` | Cloudflare Radar | Yes |
+
+20+ sources work with **zero API keys**. Each key unlocks additional data.
+
+#### NewsPredict
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `NEXTAUTH_SECRET` | | **Required** — random secret for session signing |
+| `CRON_SECRET` | | Secret for auto-seed/resolve API calls |
+| `NEXT_PUBLIC_CHAOS_URL` | | Public CHAOS API URL (for client-side SSE) |
+| `NEXT_PUBLIC_REOWN_PROJECT_ID` | | WalletConnect project ID (for Web3 login) |
+
+#### Bots (optional)
+
+| Variable | Description |
+|----------|-------------|
+| `TELEGRAM_BOT_TOKEN` + `TELEGRAM_CHAT_ID` | Telegram alerts + commands |
+| `DISCORD_BOT_TOKEN` + `DISCORD_CHANNEL_ID` | Discord bot mode |
+| `DISCORD_WEBHOOK_URL` | Discord webhook mode (simpler) |
+| `WEBHOOK_URL` | Generic webhook (Slack/Feishu) |
+
+#### Runtime
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `DATABASE_PATH` | `./chaos.db` | SQLite database location (CHAOS Engine) |
 | `CHAOS_LOG_FORMAT` | `compact` | Set to `json` for structured log output |
-| `RUST_LOG` | `chaos=info` | Log level filter (tracing/env_filter) |
+| `RUST_LOG` | `chaos=info` | Log level filter |
 
 ---
 
 ## NewsPredict
 
 Companion prediction market PWA at [`newspredict/`](newspredict/). Built with Next.js, LMSR scoring, Web3 wallet integration (BSC), and Drizzle ORM. Consumes the CHAOS public API to generate and resolve prediction markets from real-world intelligence data.
+
+- **Economic model**: [`docs/economics.md`](docs/economics.md) | [`docs/economics-zh.md`](docs/economics-zh.md)
+- **Smart contracts**: ChaosToken (C.H.A.O.S.) + ChaosPredictionMarket — deployed on BSC mainnet and testnet, verified on BscScan
 
 ---
 
