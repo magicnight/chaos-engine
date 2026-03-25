@@ -1,5 +1,7 @@
 'use client';
 
+import Link from 'next/link';
+
 interface NewsPredictionCardProps {
   title: string;
   category: string;
@@ -7,6 +9,7 @@ interface NewsPredictionCardProps {
   noPercent: number;
   isHot?: boolean;
   imageUrl?: string;
+  href?: string;
 }
 
 export function NewsPredictionCard({
@@ -16,9 +19,12 @@ export function NewsPredictionCard({
   noPercent,
   isHot,
   imageUrl,
+  href,
 }: NewsPredictionCardProps) {
+  const Wrapper = href ? Link : 'div';
+  const wrapperProps = href ? { href } : {};
   return (
-    <div className="flex gap-3 bg-[var(--card)] rounded-xl p-3">
+    <Wrapper {...wrapperProps as any} className="flex gap-3 bg-[var(--card)] rounded-xl p-3 hover:bg-[var(--card-hover)] transition-colors block">
       <div
         className="w-[72px] h-[72px] rounded-lg shrink-0"
         style={{
@@ -39,6 +45,6 @@ export function NewsPredictionCard({
           {isHot && <span className="text-xs ml-auto">Hot</span>}
         </div>
       </div>
-    </div>
+    </Wrapper>
   );
 }

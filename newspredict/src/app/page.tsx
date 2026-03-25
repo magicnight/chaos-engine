@@ -60,6 +60,7 @@ export default async function HomePage() {
     yesPercent: Math.round((m.yesPrice || 0.5) * 100),
     noPercent: Math.round((m.noPrice || 0.5) * 100),
     isHot: m.volume > 100,
+    href: `/markets/${m.id}`,
   }));
   const quickPoll = markets[1] || markets[0] || null;
   const resolvedCard = resolved[0] || null;
@@ -87,6 +88,7 @@ export default async function HomePage() {
             noPercent={Math.round((hero.noPrice || 0.5) * 100)}
             volume={hero.volume > 0 ? `$${hero.volume}` : '$0'}
             isLive={hero.status === 'open'}
+            href={`/markets/${hero.id}`}
           />
         ) : (
           <div className="rounded-xl border border-[var(--border)] p-6 text-center text-[var(--muted)] text-sm">

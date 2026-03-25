@@ -1,5 +1,7 @@
 'use client';
 
+import Link from 'next/link';
+
 interface HeroCardProps {
   title: string;
   category: string;
@@ -9,6 +11,7 @@ interface HeroCardProps {
   isLive?: boolean;
   viewerCount?: string;
   imageUrl?: string;
+  href?: string;
 }
 
 export function HeroCard({
@@ -20,9 +23,12 @@ export function HeroCard({
   isLive,
   viewerCount,
   imageUrl,
+  href,
 }: HeroCardProps) {
+  const Wrapper = href ? Link : 'div';
+  const wrapperProps = href ? { href } : {};
   return (
-    <div className="rounded-2xl overflow-hidden bg-[var(--card)]">
+    <Wrapper {...wrapperProps as any} className="block rounded-2xl overflow-hidden bg-[var(--card)] hover:ring-1 hover:ring-[var(--accent)]/30 transition-all">
       <div
         className="relative h-40 flex items-end p-4"
         style={{
@@ -60,6 +66,6 @@ export function HeroCard({
           <span>${volume} vol</span>
         </div>
       </div>
-    </div>
+    </Wrapper>
   );
 }

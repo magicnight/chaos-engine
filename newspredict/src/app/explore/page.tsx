@@ -26,6 +26,7 @@ export default function ExplorePage() {
     yesPercent: Math.round((m.yesPrice || 0.5) * 100),
     noPercent: Math.round((m.noPrice || 0.5) * 100),
     isHot: m.volume > 100,
+    href: `/markets/${m.id}`,
   }));
 
   return (
