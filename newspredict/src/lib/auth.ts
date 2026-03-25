@@ -19,6 +19,19 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
     }),
     Credentials({
+      id: 'guest',
+      name: 'Guest',
+      credentials: {},
+      async authorize() {
+        // Create anonymous guest user with starting balance
+        const [user] = await db.insert(users).values({
+          name: `Guest_${Math.random().toString(36).slice(2, 8)}`,
+          balance: '1000.00',
+        }).returning();
+        return { id: user.id, name: user.name, email: null };
+      },
+    }),
+    Credentials({
       id: 'siwe',
       name: 'Ethereum',
       credentials: {
@@ -70,15 +83,21 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     signIn: '/sign-in',
   },
   callbacks: {
-    async signIn({ user }) {
+    async signIn({ user, account }) {
+      // Guest and SIWE users are already created in authorize()
+      if (account?.provider === 'guest' || account?.provider === 'siwe') return true;
       if (!user.email) return true;
       const existing = await db.select().from(users).where(eq(users.email, user.email)).limit(1);
       if (existing.length === 0) {
-        await db.insert(users).values({
+        const [newUser] = await db.insert(users).values({
           email: user.email,
           name: user.name || null,
           avatarUrl: user.image || null,
-        });
+          balance: '1000.00',
+        }).returning();
+        user.id = newUser.id;
+      } else {
+        user.id = existing[0].id;
       }
       return true;
     },
