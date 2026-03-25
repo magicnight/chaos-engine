@@ -24,21 +24,10 @@ export function ChaosSSE() {
           try {
             const msg = JSON.parse(e.data);
             if (msg.type === 'update') {
-              // CHAOS sweep completed — re-seed markets and refresh UI
+              // CHAOS sweep completed — trigger server-side seed + resolve
               try {
-                await fetch('/api/market-seeds', {
-                  headers: { 'x-cron-secret': 'chaos-local-dev' },
-                });
+                await fetch('/api/internal/sweep-hook', { method: 'POST' });
               } catch {}
-
-              // Auto-resolve expired markets
-              try {
-                await fetch('/api/auto-resolve', {
-                  headers: { 'x-cron-secret': 'chaos-local-dev' },
-                });
-              } catch {}
-
-              // Refresh current page data
               router.refresh();
             }
           } catch {}

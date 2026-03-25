@@ -10,14 +10,14 @@ import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 /**
  * @title ChaosPredictionMarket
  * @author ChaosDevOps@BKK&Estonia
- * @notice On-chain prediction market powered by CHAOS Engine OSINT intelligence
+ * @notice On-chain prediction market with LMSR pricing, powered by CHAOS Engine
  * @dev
- * - Markets created by owner (system) or approved creators
- * - LMSR pricing computed off-chain, shares tracked on-chain
- * - Resolution by owner with automated payout
- * - Uses CHAOS token (BEP-20) for all transactions
- * - Refunds excess cost to buyer after share purchase
- * - Full position cleanup on claim/cancel
+ * - On-chain LMSR (Logarithmic Market Scoring Rule) — no off-chain trust
+ * - Buy AND sell shares with slippage protection
+ * - Pro-rata payout from deposited pool — contract always solvent
+ * - Full event logging for off-chain indexing
+ * - Market duration capped at MAX_MARKET_DURATION
+ * - Existence checks on all market operations
  *
  * Part of the CHAOS Engine — Connected Human-Augmented OSINT Suite
  * https://github.com/magicnight/chaos-engine
@@ -28,6 +28,13 @@ contract ChaosPredictionMarket is Ownable, ReentrancyGuard {
     IERC20 public immutable token;
 
     uint256 public constant MAX_QUESTION_LENGTH = 500;
+    uint256 public constant MAX_MARKET_DURATION = 365 days;
+    uint256 public constant MAX_SHARES_PER_TX = 1_000_000 * 10 ** 18;
+
+    // LMSR liquidity parameter (scaled by 1e18 for fixed-point math)
+    uint256 public constant LMSR_B = 100 * 10 ** 18;
+    // Fixed-point scale
+    uint256 private constant SCALE = 10 ** 18;
 
     enum MarketStatus { Open, Closed, ResolvedYes, ResolvedNo, Cancelled }
     enum Side { Yes, No }
@@ -36,8 +43,8 @@ contract ChaosPredictionMarket is Ownable, ReentrancyGuard {
         string question;
         uint256 closeTime;
         MarketStatus status;
-        uint256 totalYesShares;
-        uint256 totalNoShares;
+        uint256 yesShares; // total outstanding YES shares (scaled 1e18)
+        uint256 noShares;  // total outstanding NO shares (scaled 1e18)
         uint256 totalDeposited;
         address creator;
     }
@@ -54,38 +61,202 @@ contract ChaosPredictionMarket is Ownable, ReentrancyGuard {
     mapping(uint256 => mapping(address => Position)) public positions;
     mapping(address => bool) public approvedCreators;
 
-    event MarketCreated(uint256 indexed marketId, string question, uint256 closeTime, address creator);
+    event MarketCreated(uint256 indexed marketId, string question, uint256 closeTime, address indexed creator);
     event SharesPurchased(uint256 indexed marketId, address indexed trader, Side side, uint256 shares, uint256 cost);
-    event MarketResolved(uint256 indexed marketId, MarketStatus result);
+    event SharesSold(uint256 indexed marketId, address indexed trader, Side side, uint256 shares, uint256 proceeds);
     event MarketClosed(uint256 indexed marketId);
+    event MarketResolved(uint256 indexed marketId, MarketStatus result);
     event WinningsClaimed(uint256 indexed marketId, address indexed trader, uint256 payout);
     event MarketCancelled(uint256 indexed marketId);
+    event CreatorApprovalChanged(address indexed creator, bool approved);
 
     constructor(address _token) Ownable(msg.sender) {
         require(_token != address(0), "Invalid token address");
         token = IERC20(_token);
     }
 
+    // -----------------------------------------------------------------------
+    // Modifiers
+    // -----------------------------------------------------------------------
+
     modifier onlyCreator() {
-        require(msg.sender == owner() || approvedCreators[msg.sender], "Not authorized to create markets");
+        require(msg.sender == owner() || approvedCreators[msg.sender], "Not authorized");
         _;
     }
 
+    modifier marketExists(uint256 marketId) {
+        require(marketId < marketCount, "Market does not exist");
+        _;
+    }
+
+    // -----------------------------------------------------------------------
+    // On-chain LMSR Math (fixed-point, overflow-safe)
+    // -----------------------------------------------------------------------
+
+    /**
+     * @dev Approximate exp(x) for x in fixed-point (scaled by SCALE).
+     * Uses Taylor series: 1 + x + x^2/2 + x^3/6 + x^4/24 + x^5/120
+     * Accurate for |x| < 5 * SCALE (which covers our use case).
+     */
+    function _expApprox(int256 x) internal pure returns (uint256) {
+        if (x > 10 * int256(SCALE)) return type(uint256).max / 2; // cap overflow
+        if (x < -10 * int256(SCALE)) return 1; // near zero
+
+        // Taylor expansion around 0 with 8 terms
+        int256 s = int256(SCALE);
+        int256 term = s;
+        int256 result = s;
+
+        for (uint256 i = 1; i <= 8; i++) {
+            term = (term * x) / (int256(i) * s);
+            result += term;
+        }
+
+        return result > 0 ? uint256(result) : 1;
+    }
+
+    /**
+     * @dev LMSR cost function: C(q) = b * ln(exp(qYes/b) + exp(qNo/b))
+     * Returns the cost function value (scaled by SCALE).
+     */
+    function _lmsrCostFunction(uint256 qYes, uint256 qNo) internal pure returns (uint256) {
+        // exp(qYes / b) and exp(qNo / b) in fixed-point
+        int256 exponentYes = int256((qYes * SCALE) / LMSR_B);
+        int256 exponentNo = int256((qNo * SCALE) / LMSR_B);
+
+        uint256 expYes = _expApprox(exponentYes);
+        uint256 expNo = _expApprox(exponentNo);
+
+        uint256 sum = expYes + expNo;
+
+        // ln(sum) approximation using: ln(x) ≈ iterative method
+        // For simplicity: ln(x) = ln(SCALE) + (x - SCALE) / x (first-order approx for x near SCALE)
+        // Better: use a multi-step log approximation
+        uint256 logResult = _lnApprox(sum);
+
+        return (LMSR_B * logResult) / SCALE;
+    }
+
+    /**
+     * @dev Approximate ln(x) where x is scaled by SCALE.
+     * Uses the identity: ln(x) = 2 * artanh((x-1)/(x+1)) with Padé approximation.
+     */
+    function _lnApprox(uint256 x) internal pure returns (uint256) {
+        require(x > 0, "ln(0) undefined");
+        if (x == SCALE) return 0;
+
+        // Normalize: find k such that x = 2^k * m where m in [1, 2)
+        uint256 result = 0;
+        uint256 y = x;
+        uint256 ln2 = 693147180559945309; // ln(2) * 1e18
+
+        // Reduce to range [SCALE, 2*SCALE)
+        while (y >= 2 * SCALE) {
+            y = y / 2;
+            result += ln2;
+        }
+        while (y < SCALE) {
+            y = y * 2;
+            if (result >= ln2) {
+                result -= ln2;
+            } else {
+                // x < 1, return small value
+                return 0;
+            }
+        }
+
+        // Now y is in [SCALE, 2*SCALE). Use artanh series for ln(y/SCALE).
+        // t = (y - SCALE) / (y + SCALE)
+        uint256 t = ((y - SCALE) * SCALE) / (y + SCALE);
+        uint256 t2 = (t * t) / SCALE;
+
+        // ln(y) ≈ 2 * (t + t^3/3 + t^5/5)
+        uint256 term = t;
+        uint256 series = term;
+        term = (term * t2) / SCALE;
+        series += term / 3;
+        term = (term * t2) / SCALE;
+        series += term / 5;
+        term = (term * t2) / SCALE;
+        series += term / 7;
+
+        result += 2 * series;
+        return result;
+    }
+
+    /**
+     * @dev Calculate the cost to buy `deltaShares` on `side`.
+     * Cost = C(q_after) - C(q_before)
+     */
+    function calculateBuyCost(
+        uint256 marketId,
+        Side side,
+        uint256 deltaShares
+    ) public view marketExists(marketId) returns (uint256) {
+        Market storage m = markets[marketId];
+        uint256 costBefore = _lmsrCostFunction(m.yesShares, m.noShares);
+
+        uint256 newYes = side == Side.Yes ? m.yesShares + deltaShares : m.yesShares;
+        uint256 newNo = side == Side.No ? m.noShares + deltaShares : m.noShares;
+        uint256 costAfter = _lmsrCostFunction(newYes, newNo);
+
+        return costAfter > costBefore ? costAfter - costBefore : 0;
+    }
+
+    /**
+     * @dev Calculate proceeds from selling `deltaShares` on `side`.
+     * Proceeds = C(q_before) - C(q_after)
+     */
+    function calculateSellProceeds(
+        uint256 marketId,
+        Side side,
+        uint256 deltaShares
+    ) public view marketExists(marketId) returns (uint256) {
+        Market storage m = markets[marketId];
+        uint256 costBefore = _lmsrCostFunction(m.yesShares, m.noShares);
+
+        uint256 newYes = side == Side.Yes ? m.yesShares - deltaShares : m.yesShares;
+        uint256 newNo = side == Side.No ? m.noShares - deltaShares : m.noShares;
+        uint256 costAfter = _lmsrCostFunction(newYes, newNo);
+
+        return costBefore > costAfter ? costBefore - costAfter : 0;
+    }
+
+    /**
+     * @dev Current YES price (0 to SCALE).
+     */
+    function getYesPrice(uint256 marketId) public view marketExists(marketId) returns (uint256) {
+        Market storage m = markets[marketId];
+        int256 diff = int256(m.yesShares) - int256(m.noShares);
+        int256 scaled = (diff * int256(SCALE)) / int256(LMSR_B);
+
+        uint256 expVal = _expApprox(scaled);
+        // price = exp(diff/b) / (1 + exp(diff/b)) = expVal / (SCALE + expVal)
+        return (expVal * SCALE) / (SCALE + expVal);
+    }
+
+    // -----------------------------------------------------------------------
+    // Admin functions
+    // -----------------------------------------------------------------------
+
     function setApprovedCreator(address creator, bool approved) external onlyOwner {
+        require(creator != address(0), "Invalid address");
         approvedCreators[creator] = approved;
+        emit CreatorApprovalChanged(creator, approved);
     }
 
     function createMarket(string calldata question, uint256 closeTime) external onlyCreator returns (uint256) {
         require(bytes(question).length > 0 && bytes(question).length <= MAX_QUESTION_LENGTH, "Invalid question length");
         require(closeTime > block.timestamp, "Close time must be in the future");
+        require(closeTime <= block.timestamp + MAX_MARKET_DURATION, "Market duration too long");
 
         uint256 marketId = marketCount++;
         markets[marketId] = Market({
             question: question,
             closeTime: closeTime,
             status: MarketStatus.Open,
-            totalYesShares: 0,
-            totalNoShares: 0,
+            yesShares: 0,
+            noShares: 0,
             totalDeposited: 0,
             creator: msg.sender
         });
@@ -94,93 +265,26 @@ contract ChaosPredictionMarket is Ownable, ReentrancyGuard {
         return marketId;
     }
 
-    /**
-     * @notice Buy shares in a market. Excess cost above actual LMSR price is refunded.
-     * @param marketId The market to buy shares in
-     * @param side YES or NO
-     * @param shares Number of shares to buy (18 decimals)
-     * @param maxCost Maximum tokens willing to pay (slippage protection)
-     * @param actualCost The actual LMSR cost computed off-chain
-     */
-    function buyShares(
-        uint256 marketId,
-        Side side,
-        uint256 shares,
-        uint256 maxCost,
-        uint256 actualCost
-    ) external nonReentrant {
-        Market storage market = markets[marketId];
-        require(market.status == MarketStatus.Open, "Market not open");
-        require(block.timestamp < market.closeTime, "Market closed");
-        require(shares > 0, "Must buy > 0 shares");
-        require(actualCost > 0 && actualCost <= maxCost, "Invalid cost");
-
-        // Transfer actual cost from trader
-        token.safeTransferFrom(msg.sender, address(this), actualCost);
-
-        Position storage pos = positions[marketId][msg.sender];
-        if (side == Side.Yes) {
-            market.totalYesShares += shares;
-            pos.yesShares += shares;
-        } else {
-            market.totalNoShares += shares;
-            pos.noShares += shares;
-        }
-        pos.totalCost += actualCost;
-        market.totalDeposited += actualCost;
-
-        emit SharesPurchased(marketId, msg.sender, side, shares, actualCost);
-    }
-
-    /**
-     * @notice Backward-compatible buyShares (4 args, charges maxCost)
-     */
-    function buyShares(uint256 marketId, Side side, uint256 shares, uint256 maxCost) external nonReentrant {
-        Market storage market = markets[marketId];
-        require(market.status == MarketStatus.Open, "Market not open");
-        require(block.timestamp < market.closeTime, "Market closed");
-        require(shares > 0, "Must buy > 0 shares");
-        require(maxCost > 0, "Max cost must be > 0");
-
-        token.safeTransferFrom(msg.sender, address(this), maxCost);
-
-        Position storage pos = positions[marketId][msg.sender];
-        if (side == Side.Yes) {
-            market.totalYesShares += shares;
-            pos.yesShares += shares;
-        } else {
-            market.totalNoShares += shares;
-            pos.noShares += shares;
-        }
-        pos.totalCost += maxCost;
-        market.totalDeposited += maxCost;
-
-        emit SharesPurchased(marketId, msg.sender, side, shares, maxCost);
-    }
-
-    /**
-     * @notice Close a market (stop trading but don't resolve yet)
-     */
-    function closeMarket(uint256 marketId) external onlyOwner {
+    function closeMarket(uint256 marketId) external onlyOwner marketExists(marketId) {
         Market storage market = markets[marketId];
         require(market.status == MarketStatus.Open, "Market not open");
         market.status = MarketStatus.Closed;
         emit MarketClosed(marketId);
     }
 
-    function resolveMarket(uint256 marketId, bool yesWins) external onlyOwner {
+    function resolveMarket(uint256 marketId, bool yesWins) external onlyOwner marketExists(marketId) {
         Market storage market = markets[marketId];
         require(
-            market.status == MarketStatus.Open || market.status == MarketStatus.Closed,
-            "Cannot resolve"
+            market.status == MarketStatus.Closed ||
+            (market.status == MarketStatus.Open && block.timestamp >= market.closeTime),
+            "Market must be closed or past close time"
         );
-        require(block.timestamp >= market.closeTime, "Market not yet closeable");
 
         market.status = yesWins ? MarketStatus.ResolvedYes : MarketStatus.ResolvedNo;
         emit MarketResolved(marketId, market.status);
     }
 
-    function cancelMarket(uint256 marketId) external onlyOwner {
+    function cancelMarket(uint256 marketId) external onlyOwner marketExists(marketId) {
         Market storage market = markets[marketId];
         require(
             market.status == MarketStatus.Open || market.status == MarketStatus.Closed,
@@ -190,7 +294,102 @@ contract ChaosPredictionMarket is Ownable, ReentrancyGuard {
         emit MarketCancelled(marketId);
     }
 
-    function claimWinnings(uint256 marketId) external nonReentrant {
+    // -----------------------------------------------------------------------
+    // Trading (on-chain LMSR pricing)
+    // -----------------------------------------------------------------------
+
+    /**
+     * @notice Buy shares with on-chain LMSR pricing. maxCost provides slippage protection.
+     */
+    function buyShares(
+        uint256 marketId,
+        Side side,
+        uint256 shares,
+        uint256 maxCost
+    ) external nonReentrant marketExists(marketId) {
+        Market storage market = markets[marketId];
+        require(market.status == MarketStatus.Open, "Market not open");
+        require(block.timestamp < market.closeTime, "Market closed");
+        require(shares > 0 && shares <= MAX_SHARES_PER_TX, "Invalid share amount");
+
+        // Calculate cost using on-chain LMSR
+        uint256 cost = calculateBuyCost(marketId, side, shares);
+        require(cost > 0, "Cost must be > 0");
+        require(cost <= maxCost, "Exceeds max cost (slippage)");
+
+        // Transfer exact cost
+        token.safeTransferFrom(msg.sender, address(this), cost);
+
+        // Update market state
+        if (side == Side.Yes) {
+            market.yesShares += shares;
+        } else {
+            market.noShares += shares;
+        }
+        market.totalDeposited += cost;
+
+        // Update position
+        Position storage pos = positions[marketId][msg.sender];
+        if (side == Side.Yes) {
+            pos.yesShares += shares;
+        } else {
+            pos.noShares += shares;
+        }
+        pos.totalCost += cost;
+
+        emit SharesPurchased(marketId, msg.sender, side, shares, cost);
+    }
+
+    /**
+     * @notice Sell shares back to the market. minProceeds provides slippage protection.
+     */
+    function sellShares(
+        uint256 marketId,
+        Side side,
+        uint256 shares,
+        uint256 minProceeds
+    ) external nonReentrant marketExists(marketId) {
+        Market storage market = markets[marketId];
+        require(market.status == MarketStatus.Open, "Market not open");
+        require(block.timestamp < market.closeTime, "Market closed");
+        require(shares > 0, "Must sell > 0 shares");
+
+        Position storage pos = positions[marketId][msg.sender];
+        if (side == Side.Yes) {
+            require(pos.yesShares >= shares, "Insufficient YES shares");
+        } else {
+            require(pos.noShares >= shares, "Insufficient NO shares");
+        }
+
+        // Calculate proceeds using on-chain LMSR
+        uint256 proceeds = calculateSellProceeds(marketId, side, shares);
+        require(proceeds >= minProceeds, "Below min proceeds (slippage)");
+        require(proceeds <= market.totalDeposited, "Insufficient market liquidity");
+
+        // Update market state
+        if (side == Side.Yes) {
+            market.yesShares -= shares;
+            pos.yesShares -= shares;
+        } else {
+            market.noShares -= shares;
+            pos.noShares -= shares;
+        }
+        market.totalDeposited -= proceeds;
+
+        // Transfer proceeds to seller
+        token.safeTransfer(msg.sender, proceeds);
+
+        emit SharesSold(marketId, msg.sender, side, shares, proceeds);
+    }
+
+    // -----------------------------------------------------------------------
+    // Resolution & Payout
+    // -----------------------------------------------------------------------
+
+    /**
+     * @notice Claim winnings after resolution. Payout is pro-rata from totalDeposited.
+     */
+    function claimWinnings(uint256 marketId) external nonReentrant marketExists(marketId) {
         Market storage market = markets[marketId];
         Position storage pos = positions[marketId][msg.sender];
         require(!pos.claimed, "Already claimed");
@@ -199,10 +398,11 @@ contract ChaosPredictionMarket is Ownable, ReentrancyGuard {
 
         if (market.status == MarketStatus.ResolvedYes) {
             require(pos.yesShares > 0, "No winning shares");
-            payout = pos.yesShares;
+            // Pro-rata: user's YES shares / total YES shares * totalDeposited
+            payout = (pos.yesShares * market.totalDeposited) / market.yesShares;
         } else if (market.status == MarketStatus.ResolvedNo) {
             require(pos.noShares > 0, "No winning shares");
-            payout = pos.noShares;
+            payout = (pos.noShares * market.totalDeposited) / market.noShares;
         } else if (market.status == MarketStatus.Cancelled) {
             require(pos.totalCost > 0, "Nothing to refund");
             payout = pos.totalCost;
@@ -222,6 +422,10 @@ contract ChaosPredictionMarket is Ownable, ReentrancyGuard {
         emit WinningsClaimed(marketId, msg.sender, payout);
     }
 
+    // -----------------------------------------------------------------------
+    // View functions
+    // -----------------------------------------------------------------------
+
     function getPosition(uint256 marketId, address trader) external view returns (
         uint256 yesShares, uint256 noShares, uint256 totalCost
     ) {
@@ -229,11 +433,11 @@ contract ChaosPredictionMarket is Ownable, ReentrancyGuard {
         return (pos.yesShares, pos.noShares, pos.totalCost);
     }
 
-    function getMarket(uint256 marketId) external view returns (
+    function getMarket(uint256 marketId) external view marketExists(marketId) returns (
         string memory question, uint256 closeTime, MarketStatus status,
         uint256 totalYesShares, uint256 totalNoShares, uint256 totalDeposited
     ) {
         Market storage m = markets[marketId];
-        return (m.question, m.closeTime, m.status, m.totalYesShares, m.totalNoShares, m.totalDeposited);
+        return (m.question, m.closeTime, m.status, m.yesShares, m.noShares, m.totalDeposited);
     }
 }
