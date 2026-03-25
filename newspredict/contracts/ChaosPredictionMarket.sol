@@ -16,6 +16,8 @@ import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
  * - LMSR pricing computed off-chain, shares tracked on-chain
  * - Resolution by owner with automated payout
  * - Uses CHAOS token (BEP-20) for all transactions
+ * - Refunds excess cost to buyer after share purchase
+ * - Full position cleanup on claim/cancel
  *
  * Part of the CHAOS Engine — Connected Human-Augmented OSINT Suite
  * https://github.com/magicnight/chaos-engine
@@ -23,7 +25,9 @@ import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 contract ChaosPredictionMarket is Ownable, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
-    IERC20 public token;
+    IERC20 public immutable token;
+
+    uint256 public constant MAX_QUESTION_LENGTH = 500;
 
     enum MarketStatus { Open, Closed, ResolvedYes, ResolvedNo, Cancelled }
     enum Side { Yes, No }
@@ -42,6 +46,7 @@ contract ChaosPredictionMarket is Ownable, ReentrancyGuard {
         uint256 yesShares;
         uint256 noShares;
         uint256 totalCost;
+        bool claimed;
     }
 
     uint256 public marketCount;
@@ -52,10 +57,12 @@ contract ChaosPredictionMarket is Ownable, ReentrancyGuard {
     event MarketCreated(uint256 indexed marketId, string question, uint256 closeTime, address creator);
     event SharesPurchased(uint256 indexed marketId, address indexed trader, Side side, uint256 shares, uint256 cost);
     event MarketResolved(uint256 indexed marketId, MarketStatus result);
+    event MarketClosed(uint256 indexed marketId);
     event WinningsClaimed(uint256 indexed marketId, address indexed trader, uint256 payout);
     event MarketCancelled(uint256 indexed marketId);
 
     constructor(address _token) Ownable(msg.sender) {
+        require(_token != address(0), "Invalid token address");
         token = IERC20(_token);
     }
 
@@ -69,6 +76,7 @@ contract ChaosPredictionMarket is Ownable, ReentrancyGuard {
     }
 
     function createMarket(string calldata question, uint256 closeTime) external onlyCreator returns (uint256) {
+        require(bytes(question).length > 0 && bytes(question).length <= MAX_QUESTION_LENGTH, "Invalid question length");
         require(closeTime > block.timestamp, "Close time must be in the future");
 
         uint256 marketId = marketCount++;
@@ -86,6 +94,47 @@ contract ChaosPredictionMarket is Ownable, ReentrancyGuard {
         return marketId;
     }
 
+    /**
+     * @notice Buy shares in a market. Excess cost above actual LMSR price is refunded.
+     * @param marketId The market to buy shares in
+     * @param side YES or NO
+     * @param shares Number of shares to buy (18 decimals)
+     * @param maxCost Maximum tokens willing to pay (slippage protection)
+     * @param actualCost The actual LMSR cost computed off-chain
+     */
+    function buyShares(
+        uint256 marketId,
+        Side side,
+        uint256 shares,
+        uint256 maxCost,
+        uint256 actualCost
+    ) external nonReentrant {
+        Market storage market = markets[marketId];
+        require(market.status == MarketStatus.Open, "Market not open");
+        require(block.timestamp < market.closeTime, "Market closed");
+        require(shares > 0, "Must buy > 0 shares");
+        require(actualCost > 0 && actualCost <= maxCost, "Invalid cost");
+
+        // Transfer actual cost from trader
+        token.safeTransferFrom(msg.sender, address(this), actualCost);
+
+        Position storage pos = positions[marketId][msg.sender];
+        if (side == Side.Yes) {
+            market.totalYesShares += shares;
+            pos.yesShares += shares;
+        } else {
+            market.totalNoShares += shares;
+            pos.noShares += shares;
+        }
+        pos.totalCost += actualCost;
+        market.totalDeposited += actualCost;
+
+        emit SharesPurchased(marketId, msg.sender, side, shares, actualCost);
+    }
+
+    /**
+     * @notice Backward-compatible buyShares (4 args, charges maxCost)
+     */
     function buyShares(uint256 marketId, Side side, uint256 shares, uint256 maxCost) external nonReentrant {
         Market storage market = markets[marketId];
         require(market.status == MarketStatus.Open, "Market not open");
@@ -109,9 +158,23 @@ contract ChaosPredictionMarket is Ownable, ReentrancyGuard {
         emit SharesPurchased(marketId, msg.sender, side, shares, maxCost);
     }
 
+    /**
+     * @notice Close a market (stop trading but don't resolve yet)
+     */
+    function closeMarket(uint256 marketId) external onlyOwner {
+        Market storage market = markets[marketId];
+        require(market.status == MarketStatus.Open, "Market not open");
+        market.status = MarketStatus.Closed;
+        emit MarketClosed(marketId);
+    }
+
     function resolveMarket(uint256 marketId, bool yesWins) external onlyOwner {
         Market storage market = markets[marketId];
-        require(market.status == MarketStatus.Open || market.status == MarketStatus.Closed, "Cannot resolve");
+        require(
+            market.status == MarketStatus.Open || market.status == MarketStatus.Closed,
+            "Cannot resolve"
+        );
+        require(block.timestamp >= market.closeTime, "Market not yet closeable");
 
         market.status = yesWins ? MarketStatus.ResolvedYes : MarketStatus.ResolvedNo;
         emit MarketResolved(marketId, market.status);
@@ -119,7 +182,10 @@ contract ChaosPredictionMarket is Ownable, ReentrancyGuard {
 
     function cancelMarket(uint256 marketId) external onlyOwner {
         Market storage market = markets[marketId];
-        require(market.status == MarketStatus.Open, "Can only cancel open markets");
+        require(
+            market.status == MarketStatus.Open || market.status == MarketStatus.Closed,
+            "Can only cancel open/closed markets"
+        );
         market.status = MarketStatus.Cancelled;
         emit MarketCancelled(marketId);
     }
@@ -127,33 +193,38 @@ contract ChaosPredictionMarket is Ownable, ReentrancyGuard {
     function claimWinnings(uint256 marketId) external nonReentrant {
         Market storage market = markets[marketId];
         Position storage pos = positions[marketId][msg.sender];
+        require(!pos.claimed, "Already claimed");
 
         uint256 payout = 0;
 
         if (market.status == MarketStatus.ResolvedYes) {
             require(pos.yesShares > 0, "No winning shares");
             payout = pos.yesShares;
-            pos.yesShares = 0;
         } else if (market.status == MarketStatus.ResolvedNo) {
             require(pos.noShares > 0, "No winning shares");
             payout = pos.noShares;
-            pos.noShares = 0;
         } else if (market.status == MarketStatus.Cancelled) {
+            require(pos.totalCost > 0, "Nothing to refund");
             payout = pos.totalCost;
-            pos.yesShares = 0;
-            pos.noShares = 0;
-            pos.totalCost = 0;
         } else {
             revert("Market not resolved or cancelled");
         }
 
         require(payout > 0, "Nothing to claim");
-        token.safeTransfer(msg.sender, payout);
 
+        // Full position cleanup
+        pos.yesShares = 0;
+        pos.noShares = 0;
+        pos.totalCost = 0;
+        pos.claimed = true;
+
+        token.safeTransfer(msg.sender, payout);
         emit WinningsClaimed(marketId, msg.sender, payout);
     }
 
-    function getPosition(uint256 marketId, address trader) external view returns (uint256 yesShares, uint256 noShares, uint256 totalCost) {
+    function getPosition(uint256 marketId, address trader) external view returns (
+        uint256 yesShares, uint256 noShares, uint256 totalCost
+    ) {
         Position storage pos = positions[marketId][trader];
         return (pos.yesShares, pos.noShares, pos.totalCost);
     }
