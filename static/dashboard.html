@@ -364,31 +364,67 @@ var flatSvg, flatProjection, flatPath, flatG, flatZoom, flatW, flatH;
 var grid = null;
 
 /* ================================================================
+   INTERNATIONALIZATION (i18n)
+   ================================================================ */
+var LANG = localStorage.getItem('chaos_lang') || (navigator.language.startsWith('zh') ? 'zh' : 'en');
+var I18N = {
+  en: {
+    situationMap: 'SITUATION MAP', sourceHealth: 'SOURCE HEALTH', marketData: 'MARKET DATA',
+    riskGauges: 'RISK GAUGES', energyMacro: 'ENERGY & MACRO', conflicts: 'CONFLICTS',
+    osintStream: 'OSINT STREAM', newsFeed: 'NEWS FEED', seismicMonitor: 'SEISMIC MONITOR',
+    nuclearWatch: 'NUCLEAR WATCH', cyberThreats: 'CYBER THREATS', spaceWatch: 'SPACE WATCH',
+    deltaChanges: 'DELTA / CHANGES', aiBrief: 'AI INTELLIGENCE BRIEF', crossSignals: 'CROSS-SOURCE SIGNALS',
+    sanctionsWatch: 'SANCTIONS WATCH', globalEconomy: 'GLOBAL ECONOMY', climateEnviron: 'CLIMATE & ENVIRON',
+    networkIntel: 'NETWORK INTEL', transportAir: 'TRANSPORT & AIRSPACE', trendsInnovation: 'TRENDS & INNOVATION',
+    neoTracker: 'NEO TRACKER',
+    catSituational: 'Situational', catSystem: 'System', catFinancial: 'Financial', catSecurity: 'Security',
+    catNews: 'News', catNatural: 'Natural', catCyber: 'Cyber', catSpace: 'Space', catAI: 'AI',
+    noData: 'NO DATA', updated: 'Updated', settings: 'Dashboard Settings', resetLayout: 'Reset Layout',
+    toggleVisuals: 'Toggle Visuals', close: 'Close', sweeping: 'SWEEPING...',
+  },
+  zh: {
+    situationMap: '态势地图', sourceHealth: '数据源健康', marketData: '市场数据',
+    riskGauges: '风险仪表', energyMacro: '能源与宏观', conflicts: '冲突事件',
+    osintStream: 'OSINT 信息流', newsFeed: '新闻聚合', seismicMonitor: '地震监控',
+    nuclearWatch: '核辐射监控', cyberThreats: '网络威胁', spaceWatch: '太空监控',
+    deltaChanges: '变化检测', aiBrief: 'AI 情报简报', crossSignals: '跨源关联信号',
+    sanctionsWatch: '制裁监控', globalEconomy: '全球经济', climateEnviron: '气候与环境',
+    networkIntel: '网络情报', transportAir: '运输与空域', trendsInnovation: '趋势与创新',
+    neoTracker: '近地天体追踪',
+    catSituational: '态势', catSystem: '系统', catFinancial: '金融', catSecurity: '安全',
+    catNews: '新闻', catNatural: '自然', catCyber: '网络', catSpace: '太空', catAI: 'AI',
+    noData: '暂无数据', updated: '已更新', settings: '仪表板设置', resetLayout: '重置布局',
+    toggleVisuals: '切换视觉效果', close: '关闭', sweeping: '扫描中...',
+  }
+};
+var L = I18N[LANG] || I18N.en;
+
+/* ================================================================
    PANEL REGISTRY
    ================================================================ */
 var PANELS = [
-  { id: 'globe',     title: 'SITUATION MAP',        icon: '\uD83C\uDF10', category: 'Situational',  w: 8, h: 5, x: 0, y: 0 },
-  { id: 'sources',   title: 'SOURCE HEALTH',        icon: '\uD83D\uDCE1', category: 'System',       w: 4, h: 4, x: 8, y: 0 },
-  { id: 'markets',   title: 'MARKET DATA',          icon: '\uD83D\uDCCA', category: 'Financial',    w: 4, h: 3, x: 0, y: 5 },
-  { id: 'risk',      title: 'RISK GAUGES',          icon: '\u26A1',       category: 'Financial',    w: 4, h: 4, x: 4, y: 5 },
-  { id: 'energy',    title: 'ENERGY & MACRO',       icon: '\uD83D\uDEE2', category: 'Financial',    w: 4, h: 2, x: 8, y: 4 },
-  { id: 'conflicts', title: 'CONFLICTS',            icon: '\u2694',       category: 'Security',     w: 4, h: 3, x: 8, y: 6 },
-  { id: 'osint',     title: 'OSINT STREAM',         icon: '\uD83D\uDCE1', category: 'Security',     w: 4, h: 4, x: 8, y: 9 },
-  { id: 'news',      title: 'NEWS FEED',            icon: '\uD83D\uDCF0', category: 'News',         w: 4, h: 3, x: 0, y: 8 },
-  { id: 'quakes',    title: 'SEISMIC MONITOR',      icon: '\uD83C\uDF0B', category: 'Natural',      w: 4, h: 3, x: 4, y: 9 },
-  { id: 'nuclear',   title: 'NUCLEAR WATCH',        icon: '\u2622',       category: 'Natural',      w: 4, h: 3, x: 0, y: 11 },
-  { id: 'cyber',     title: 'CYBER THREATS',        icon: '\uD83D\uDD12', category: 'Cyber',        w: 4, h: 3, x: 4, y: 12 },
-  { id: 'space',     title: 'SPACE WATCH',          icon: '\uD83D\uDEF0', category: 'Space',        w: 4, h: 2, x: 8, y: 13 },
-  { id: 'delta',     title: 'DELTA / CHANGES',      icon: '\uD83D\uDCC8', category: 'System',       w: 4, h: 3, x: 0, y: 14 },
-  { id: 'analysis',  title: 'AI INTELLIGENCE BRIEF', icon: '\uD83E\uDD16', category: 'AI',          w: 4, h: 4, x: 4, y: 15 },
-  { id: 'signals',   title: 'CROSS-SOURCE SIGNALS', icon: '\uD83D\uDD17', category: 'AI',           w: 4, h: 3, x: 8, y: 15 },
-  { id: 'sanctions',  title: 'SANCTIONS WATCH',      icon: '\uD83D\uDEAB', category: 'Security',     w: 4, h: 3, x: 0, y: 18 },
-  { id: 'economy',    title: 'GLOBAL ECONOMY',       icon: '\uD83C\uDFE6', category: 'Financial',    w: 4, h: 3, x: 4, y: 18 },
-  { id: 'climate',    title: 'CLIMATE & ENVIRON',    icon: '\uD83C\uDF21', category: 'Natural',      w: 4, h: 3, x: 8, y: 18 },
-  { id: 'network',    title: 'NETWORK INTEL',        icon: '\uD83C\uDF10', category: 'Cyber',        w: 4, h: 2, x: 0, y: 21 },
-  { id: 'transport',  title: 'TRANSPORT & AIRSPACE', icon: '\u2708',       category: 'Situational',  w: 4, h: 3, x: 4, y: 21 },
-  { id: 'trends',     title: 'TRENDS & INNOVATION',  icon: '\uD83D\uDCC8', category: 'News',         w: 4, h: 3, x: 8, y: 21 },
-  { id: 'asteroids',  title: 'NEO TRACKER',          icon: '\u2604',       category: 'Space',        w: 4, h: 2, x: 0, y: 24 }
+  { id: 'globe',     title: L.situationMap,     icon: '\uD83C\uDF10', category: L.catSituational,  w: 8, h: 5, x: 0, y: 0 },
+  { id: 'sources',   title: L.sourceHealth,     icon: '\uD83D\uDCE1', category: L.catSystem,       w: 4, h: 4, x: 8, y: 0 },
+  { id: 'markets',   title: L.marketData,        icon: '\uD83D\uDCCA', category: L.catFinancial,  w: 4, h: 3, x: 0, y: 5 },
+  { id: 'risk',      title: L.riskGauges,        icon: '\u26A1',       category: L.catFinancial,  w: 4, h: 4, x: 4, y: 5 },
+  { id: 'energy',    title: L.energyMacro,       icon: '\uD83D\uDEE2', category: L.catFinancial,  w: 4, h: 2, x: 8, y: 4 },
+  { id: 'conflicts', title: L.conflicts,          icon: '\u2694',       category: L.catSecurity,   w: 4, h: 3, x: 8, y: 6 },
+  { id: 'osint',     title: L.osintStream,        icon: '\uD83D\uDCE1', category: L.catSecurity,   w: 4, h: 4, x: 8, y: 9 },
+  { id: 'news',      title: L.newsFeed,           icon: '\uD83D\uDCF0', category: L.catNews,       w: 4, h: 3, x: 0, y: 8 },
+  { id: 'quakes',    title: L.seismicMonitor,     icon: '\uD83C\uDF0B', category: L.catNatural,    w: 4, h: 3, x: 4, y: 9 },
+  { id: 'nuclear',   title: L.nuclearWatch,       icon: '\u2622',       category: L.catNatural,    w: 4, h: 3, x: 0, y: 11 },
+  { id: 'cyber',     title: L.cyberThreats,       icon: '\uD83D\uDD12', category: L.catCyber,      w: 4, h: 3, x: 4, y: 12 },
+  { id: 'space',     title: L.spaceWatch,         icon: '\uD83D\uDEF0', category: L.catSpace,      w: 4, h: 2, x: 8, y: 13 },
+  { id: 'delta',     title: L.deltaChanges,       icon: '\uD83D\uDCC8', category: L.catSystem,     w: 4, h: 3, x: 0, y: 14 },
+  { id: 'analysis',  title: L.aiBrief,            icon: '\uD83E\uDD16', category: L.catAI,         w: 4, h: 4, x: 4, y: 15 },
+  { id: 'signals',   title: L.crossSignals,       icon: '\uD83D\uDD17', category: L.catAI,         w: 4, h: 3, x: 8, y: 15 },
+  { id: 'sanctions',  title: L.sanctionsWatch,     icon: '\uD83D\uDEAB', category: L.catSecurity,   w: 4, h: 3, x: 0, y: 18 },
+  { id: 'economy',    title: L.globalEconomy,      icon: '\uD83C\uDFE6', category: L.catFinancial,  w: 4, h: 3, x: 4, y: 18 },
+  { id: 'climate',    title: L.climateEnviron,     icon: '\uD83C\uDF21', category: L.catNatural,    w: 4, h: 3, x: 8, y: 18 },
+  { id: 'network',    title: L.networkIntel,       icon: '\uD83C\uDF10', category: L.catCyber,      w: 4, h: 2, x: 0, y: 21 },
+  { id: 'transport',  title: L.transportAir,       icon: '\u2708',       category: L.catSituational, w: 4, h: 3, x: 4, y: 21 },
+  { id: 'trends',     title: L.trendsInnovation,   icon: '\uD83D\uDCC8', category: L.catNews,        w: 4, h: 3, x: 8, y: 21 },
+  { id: 'asteroids',  title: L.neoTracker,         icon: '\u2604',       category: L.catSpace,       w: 4, h: 2, x: 0, y: 24 }
 ];
 
 var regionPOV = {
@@ -866,7 +902,7 @@ function updateSources() {
   }).join('');
 }
 
-var noDataHtml = '<div style="display:flex;align-items:center;justify-content:center;height:100%;min-height:60px;color:var(--dim);font-family:var(--mono);font-size:10px;letter-spacing:0.08em;text-transform:uppercase;opacity:0.6">NO DATA</div>';
+var noDataHtml = '<div style="display:flex;align-items:center;justify-content:center;height:100%;min-height:60px;color:var(--dim);font-family:var(--mono);font-size:10px;letter-spacing:0.08em;text-transform:uppercase;opacity:0.6">' + L.noData + '</div>';
 
 function updateMarkets() {
   var el = document.getElementById('panel-markets');
