@@ -1,5 +1,7 @@
 'use client';
 
+import { useLocale } from '@/lib/i18n/context';
+
 interface QuickPollCardProps {
   question: string;
   yesPrice: number;
@@ -15,12 +17,13 @@ export function QuickPollCard({
   traderCount,
   onVote,
 }: QuickPollCardProps) {
+  const { t } = useLocale();
   const yesPercent = Math.round(yesPrice * 100);
   return (
     <div className="card p-4 animate-fade-in">
       <div className="flex items-center gap-2 mb-2">
-        <span className="badge badge-new">Quick Predict</span>
-        <span className="text-[10px] text-[var(--muted)] font-mono">{traderCount} traders</span>
+        <span className="badge badge-new">{t('poll.quickPoll')}</span>
+        <span className="text-[10px] text-[var(--muted)] font-mono">{t('poll.tradersActive', { n: traderCount })}</span>
       </div>
       <p className="text-sm font-semibold mb-3 leading-tight">{question}</p>
       <div className="flex gap-2 mb-3">

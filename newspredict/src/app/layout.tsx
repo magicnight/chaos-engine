@@ -22,7 +22,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`dark ${geist.variable} ${geistMono.variable}`}>
+    <html lang="en" suppressHydrationWarning className={`dark ${geist.variable} ${geistMono.variable}`}>
       <body className="min-h-screen bg-[var(--background)] text-[var(--foreground)] antialiased font-[family-name:var(--font-geist)]">
         <Providers>
           <main className="pb-20">{children}</main>

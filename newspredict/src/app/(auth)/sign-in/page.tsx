@@ -3,8 +3,10 @@
 import Link from 'next/link';
 import { signIn } from 'next-auth/react';
 import { WalletSignIn } from '@/components/web3/wallet-sign-in';
+import { useLocale } from '@/lib/i18n/context';
 
 export default function SignInPage() {
+  const { t } = useLocale();
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4">
@@ -19,7 +21,7 @@ export default function SignInPage() {
             onClick={() => signIn('guest', { callbackUrl: '/' })}
             className="w-full flex items-center justify-center gap-2 rounded-xl bg-[var(--accent)] text-black px-4 py-3 text-sm font-bold hover:opacity-90 transition-opacity"
           >
-            Start Trading (Guest — $1,000 free)
+            {t('auth.guestLogin')} — $1,000
           </button>
           <button
             onClick={() => signIn('google')}
@@ -44,7 +46,7 @@ export default function SignInPage() {
         <p className="text-center text-sm text-[var(--muted)]">
           New here?{' '}
           <Link href="/sign-up" className="text-[var(--accent)] hover:underline">
-            Sign up
+            {t('common.signUp')}
           </Link>
         </p>
       </div>

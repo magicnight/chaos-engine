@@ -5,6 +5,7 @@ import { markets, trades, users } from '@/lib/db/schema';
 import { eq, desc } from 'drizzle-orm';
 import { getPrice } from '@/lib/market-engine';
 import { MarketDetailClient } from './client';
+import { T } from '@/components/i18n-text';
 
 export const dynamic = 'force-dynamic';
 
@@ -65,7 +66,7 @@ export default async function MarketDetailPage({
     <div>
       <div className="px-4 pt-4 pb-2 flex items-center gap-3">
         <Link href="/markets" className="text-[var(--muted)] hover:text-[var(--foreground)]">
-          &larr; Back
+          &larr; <T k="common.back" />
         </Link>
         <span className="text-[10px] text-[var(--accent)] font-medium uppercase tracking-wide">
           {market.category}
@@ -79,7 +80,7 @@ export default async function MarketDetailPage({
           {Number(market.volume) >= 1000
             ? `$${(Number(market.volume) / 1000).toFixed(1)}K`
             : `$${Number(market.volume).toFixed(0)}`}{' '}
-          volume
+          <T k="common.volume" />
         </p>
       </div>
 

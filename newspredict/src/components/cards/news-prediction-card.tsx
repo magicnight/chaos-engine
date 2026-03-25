@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useLocale } from '@/lib/i18n/context';
 
 interface NewsPredictionCardProps {
   title: string;
@@ -21,6 +22,7 @@ export function NewsPredictionCard({
   imageUrl,
   href,
 }: NewsPredictionCardProps) {
+  const { t } = useLocale();
   const Wrapper = href ? Link : 'div';
   const wrapperProps = href ? { href } : {};
   return (
@@ -42,7 +44,7 @@ export function NewsPredictionCard({
           <span className="text-[10px] text-[var(--accent)] font-semibold uppercase tracking-wide">
             {category}
           </span>
-          {isHot && <span className="badge badge-hot">HOT</span>}
+          {isHot && <span className="badge badge-hot">{t('common.hot')}</span>}
         </div>
         <h4 className="text-sm font-semibold leading-tight line-clamp-2 mb-2">{title}</h4>
         <div className="flex items-center gap-2 mb-1.5">

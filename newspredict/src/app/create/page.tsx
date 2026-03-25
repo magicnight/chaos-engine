@@ -2,22 +2,11 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-
-const CATEGORIES = [
-  { value: 'economics', label: 'Markets' },
-  { value: 'politics', label: 'Politics' },
-  { value: 'technology', label: 'Tech' },
-  { value: 'geopolitics', label: 'Conflict' },
-  { value: 'environment', label: 'Climate' },
-  { value: 'health', label: 'Health' },
-  { value: 'science', label: 'Science' },
-  { value: 'entertainment', label: 'Entertainment' },
-  { value: 'sports', label: 'Sports' },
-  { value: 'other', label: 'Other' },
-];
+import { useLocale } from '@/lib/i18n/context';
 
 export default function CreateMarketPage() {
   const router = useRouter();
+  const { t } = useLocale();
   const [question, setQuestion] = useState('');
   const [category, setCategory] = useState('economics');
   const [closeAt, setCloseAt] = useState('');
@@ -27,10 +16,23 @@ export default function CreateMarketPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  const CATEGORIES = [
+    { value: 'economics', key: 'categories.markets' },
+    { value: 'politics', key: 'categories.politics' },
+    { value: 'technology', key: 'categories.tech' },
+    { value: 'geopolitics', key: 'categories.conflict' },
+    { value: 'environment', key: 'categories.climate' },
+    { value: 'health', key: 'categories.health' },
+    { value: 'science', key: 'categories.science' },
+    { value: 'entertainment', key: 'categories.entertainment' },
+    { value: 'sports', key: 'categories.sports' },
+    { value: 'other', key: 'categories.other' },
+  ];
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!question || !closeAt || !resolutionCriteria) {
-      setError('Please fill in all required fields');
+      setError(t('create.required'));
       return;
     }
 
@@ -59,7 +61,7 @@ export default function CreateMarketPage() {
 
       router.push(`/markets/${data.id}`);
     } catch {
-      setError('Network error');
+      setError(t('common.networkError'));
     } finally {
       setLoading(false);
     }
@@ -67,28 +69,28 @@ export default function CreateMarketPage() {
 
   return (
     <div className="px-4 pt-4 pb-8">
-      <h1 className="text-xl font-bold mb-4">Create Market</h1>
+      <h1 className="text-xl font-bold mb-4">{t('create.title')}</h1>
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label className="text-xs text-[var(--muted)] mb-1 block">
-            Question <span className="text-[var(--danger)]">*</span>
+            {t('create.question')} <span className="text-[var(--danger)]">*</span>
           </label>
           <textarea
             value={question}
             onChange={(e) => setQuestion(e.target.value)}
-            placeholder="Will X happen by Y date?"
+            placeholder={t('create.questionPlaceholder')}
             rows={2}
             className="w-full rounded-xl bg-[var(--card)] border border-[var(--border)] px-4 py-2.5 text-sm text-[var(--foreground)] placeholder-[var(--muted)] outline-none focus:border-[var(--accent)] transition-colors resize-none"
           />
         </div>
 
         <div>
-          <label className="text-xs text-[var(--muted)] mb-1 block">Description</label>
+          <label className="text-xs text-[var(--muted)] mb-1 block">{t('create.description')}</label>
           <textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            placeholder="Additional context for this market..."
+            placeholder={t('create.descriptionPlaceholder')}
             rows={2}
             className="w-full rounded-xl bg-[var(--card)] border border-[var(--border)] px-4 py-2.5 text-sm text-[var(--foreground)] placeholder-[var(--muted)] outline-none focus:border-[var(--accent)] transition-colors resize-none"
           />
@@ -96,7 +98,7 @@ export default function CreateMarketPage() {
 
         <div>
           <label className="text-xs text-[var(--muted)] mb-1 block">
-            Category <span className="text-[var(--danger)]">*</span>
+            {t('create.category')} <span className="text-[var(--danger)]">*</span>
           </label>
           <select
             value={category}
@@ -105,7 +107,7 @@ export default function CreateMarketPage() {
           >
             {CATEGORIES.map((c: any) => (
               <option key={c.value} value={c.value}>
-                {c.label}
+                {t(c.key)}
               </option>
             ))}
           </select>
@@ -113,7 +115,7 @@ export default function CreateMarketPage() {
 
         <div>
           <label className="text-xs text-[var(--muted)] mb-1 block">
-            Close Date <span className="text-[var(--danger)]">*</span>
+            {t('create.closeDate')} <span className="text-[var(--danger)]">*</span>
           </label>
           <input
             type="datetime-local"
@@ -125,24 +127,24 @@ export default function CreateMarketPage() {
 
         <div>
           <label className="text-xs text-[var(--muted)] mb-1 block">
-            Resolution Criteria <span className="text-[var(--danger)]">*</span>
+            {t('create.resolutionCriteria')} <span className="text-[var(--danger)]">*</span>
           </label>
           <textarea
             value={resolutionCriteria}
             onChange={(e) => setResolutionCriteria(e.target.value)}
-            placeholder="How will this market be resolved? (e.g., 'BTC price above $100K on CoinGecko')"
+            placeholder={t('create.resolutionCriteriaPlaceholder')}
             rows={2}
             className="w-full rounded-xl bg-[var(--card)] border border-[var(--border)] px-4 py-2.5 text-sm text-[var(--foreground)] placeholder-[var(--muted)] outline-none focus:border-[var(--accent)] transition-colors resize-none"
           />
         </div>
 
         <div>
-          <label className="text-xs text-[var(--muted)] mb-1 block">Resolution Source</label>
+          <label className="text-xs text-[var(--muted)] mb-1 block">{t('create.resolutionSource')}</label>
           <input
             type="text"
             value={resolutionSource}
             onChange={(e) => setResolutionSource(e.target.value)}
-            placeholder="e.g., CoinGecko, Reuters, NOAA"
+            placeholder={t('create.resolutionSourcePlaceholder')}
             className="w-full rounded-xl bg-[var(--card)] border border-[var(--border)] px-4 py-2.5 text-sm text-[var(--foreground)] placeholder-[var(--muted)] outline-none focus:border-[var(--accent)] transition-colors"
           />
         </div>
@@ -154,7 +156,7 @@ export default function CreateMarketPage() {
           disabled={loading}
           className="w-full py-3 rounded-xl bg-[var(--accent)] text-black font-semibold text-sm hover:opacity-90 transition-opacity disabled:opacity-50"
         >
-          {loading ? 'Creating...' : 'Create Market'}
+          {loading ? t('create.creating') : t('create.createMarket')}
         </button>
       </form>
     </div>

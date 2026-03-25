@@ -1,6 +1,7 @@
 'use client';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
+import { useLocale } from '@/lib/i18n/context';
 
 function HomeIcon({ active }: { active: boolean }) {
   return (
@@ -46,27 +47,29 @@ function PlusIcon() {
   );
 }
 
-const tabs = [
-  { href: '/', label: 'Home', Icon: HomeIcon },
-  { href: '/explore', label: 'Explore', Icon: ExploreIcon },
-  { href: '/create', label: 'Create', Icon: PlusIcon, isCreate: true },
-  { href: '/activity', label: 'Activity', Icon: ActivityIcon },
-  { href: '/profile', label: 'Profile', Icon: ProfileIcon },
+const tabKeys = [
+  { href: '/', key: 'nav.home', Icon: HomeIcon },
+  { href: '/explore', key: 'nav.explore', Icon: ExploreIcon },
+  { href: '/create', key: 'nav.create', Icon: PlusIcon, isCreate: true },
+  { href: '/activity', key: 'nav.activity', Icon: ActivityIcon },
+  { href: '/profile', key: 'nav.profile', Icon: ProfileIcon },
 ];
 
 export function BottomNav() {
   const pathname = usePathname();
+  const { t } = useLocale();
   return (
     <nav role="navigation" aria-label="Main navigation" className="fixed bottom-0 left-0 right-0 glass border-t border-[var(--border)] z-50">
       <div className="flex items-center justify-around h-16 max-w-lg mx-auto">
-        {tabs.map((tab) => {
+        {tabKeys.map((tab) => {
           const active = pathname === tab.href;
+          const label = t(tab.key);
           if (tab.isCreate) {
             return (
               <Link
                 key={tab.href}
                 href={tab.href}
-                aria-label="Create market"
+                aria-label={label}
                 className="bg-[var(--accent)] text-black w-12 h-12 rounded-full flex items-center justify-center -mt-4 shadow-lg shadow-[var(--accent)]/20 hover:shadow-[var(--accent)]/40 active:scale-95 transition-all"
               >
                 <PlusIcon />
@@ -77,13 +80,13 @@ export function BottomNav() {
             <Link
               key={tab.href}
               href={tab.href}
-              aria-label={tab.label}
+              aria-label={label}
               className={`flex flex-col items-center gap-0.5 transition-colors ${
                 active ? 'text-[var(--accent)]' : 'text-[var(--muted)] hover:text-[var(--foreground-dim)]'
               }`}
             >
               <tab.Icon active={active} />
-              <span className="text-[10px] font-medium">{tab.label}</span>
+              <span className="text-[10px] font-medium">{label}</span>
             </Link>
           );
         })}

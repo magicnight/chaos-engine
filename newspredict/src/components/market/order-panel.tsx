@@ -5,6 +5,7 @@ import { useAccount } from 'wagmi';
 import { formatUnits } from 'viem';
 import { useChaosBalance, useApproveToken, useBuyShares, useSellShares } from '@/lib/web3/hooks';
 import { CONTRACTS } from '@/lib/web3/contracts';
+import { useLocale } from '@/lib/i18n/context';
 
 type TradeMode = 'virtual' | 'onchain';
 
@@ -22,6 +23,7 @@ function TxStatus({ hash, isConfirming, isSuccess, chainId }: {
   isSuccess: boolean;
   chainId?: number;
 }) {
+  const { t } = useLocale();
   if (!hash) return null;
   const explorer = chainId === 56
     ? 'https://bscscan.com/tx/'
@@ -29,8 +31,8 @@ function TxStatus({ hash, isConfirming, isSuccess, chainId }: {
 
   return (
     <div className="text-xs mt-2 p-2 rounded bg-[var(--background)]">
-      {isConfirming && <p className="text-[var(--accent)]">Confirming transaction...</p>}
-      {isSuccess && <p className="text-[var(--success)]">Transaction confirmed</p>}
+      {isConfirming && <p className="text-[var(--accent)]">{t('order.confirmingTx')}</p>}
+      {isSuccess && <p className="text-[var(--success)]">{t('order.txConfirmed')}</p>}
       <a
         href={`${explorer}${hash}`}
         target="_blank"
@@ -49,6 +51,7 @@ export function OrderPanel({ marketId, yesPrice, noPrice, onchainMarketId, onTra
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [mode, setMode] = useState<TradeMode>('virtual');
+  const { t } = useLocale();
 
   const { isConnected, chain } = useAccount();
   const { balance: cruxBalance, refetch: refetchBalance } = useChaosBalance();
@@ -83,7 +86,7 @@ export function OrderPanel({ marketId, yesPrice, noPrice, onchainMarketId, onTra
         onTrade?.(data);
       }
     } catch {
-      setError('Network error');
+      setError(t('common.networkError'));
     } finally {
       setLoading(false);
     }
@@ -102,7 +105,6 @@ export function OrderPanel({ marketId, yesPrice, noPrice, onchainMarketId, onTra
     buy(onchainMarketId, sideNum as 0 | 1, estimatedShares.toFixed(4), amount.toString(), chainId);
   }
 
-  // Refetch balance after successful buy
   if (buySuccess) {
     refetchBalance();
   }
@@ -112,7 +114,6 @@ export function OrderPanel({ marketId, yesPrice, noPrice, onchainMarketId, onTra
 
   return (
     <div className="bg-[var(--card)] rounded-xl p-4">
-      {/* Mode toggle */}
       {isConnected && (
         <div className="flex rounded-lg bg-[var(--background)] p-0.5 mb-4">
           <button
@@ -123,7 +124,7 @@ export function OrderPanel({ marketId, yesPrice, noPrice, onchainMarketId, onTra
                 : 'text-[var(--muted)]'
             }`}
           >
-            Virtual Credits
+            {t('order.virtualCredits')}
           </button>
           <button
             onClick={() => setMode('onchain')}
@@ -133,20 +134,18 @@ export function OrderPanel({ marketId, yesPrice, noPrice, onchainMarketId, onTra
                 : 'text-[var(--muted)]'
             }`}
           >
-            On-Chain (CRUX)
+            {t('order.onChain')}
           </button>
         </div>
       )}
 
-      {/* CRUX balance display */}
       {isOnchain && (
         <div className="flex items-center justify-between mb-3 px-1">
-          <span className="text-xs text-[var(--muted)]">CRUX Balance</span>
+          <span className="text-xs text-[var(--muted)]">{t('order.cruxBalance')}</span>
           <span className="text-xs font-mono text-[var(--foreground)]">{formattedCruxBalance} CRUX</span>
         </div>
       )}
 
-      {/* Side selector */}
       <div className="flex gap-2 mb-4">
         <button
           onClick={() => setSide('YES')}
@@ -157,7 +156,7 @@ export function OrderPanel({ marketId, yesPrice, noPrice, onchainMarketId, onTra
               : 'bg-[var(--success)]/15 text-[var(--success)]'
           }`}
         >
-          BUY YES ${yesPrice.toFixed(2)}
+          {t('order.buyYes')} ${yesPrice.toFixed(2)}
         </button>
         <button
           onClick={() => setSide('NO')}
@@ -168,14 +167,13 @@ export function OrderPanel({ marketId, yesPrice, noPrice, onchainMarketId, onTra
               : 'bg-[var(--danger)]/15 text-[var(--danger)]'
           }`}
         >
-          BUY NO ${noPrice.toFixed(2)}
+          {t('order.buyNo')} ${noPrice.toFixed(2)}
         </button>
       </div>
 
-      {/* Amount input */}
       <div className="mb-4">
         <label className="text-xs text-[var(--muted)] mb-1 block">
-          Amount {isOnchain ? '(CRUX)' : '($)'}
+          {t('order.amount')} {isOnchain ? '(CRUX)' : '($)'}
         </label>
         <input
           type="number"
@@ -202,18 +200,17 @@ export function OrderPanel({ marketId, yesPrice, noPrice, onchainMarketId, onTra
         </div>
       </div>
 
-      {/* Trade details */}
       <div className="space-y-1 mb-4 text-xs text-[var(--muted)]">
         <div className="flex justify-between">
-          <span>Est. shares</span>
+          <span>{t('order.estShares')}</span>
           <span className="text-[var(--foreground)]">{estimatedShares.toFixed(1)}</span>
         </div>
         <div className="flex justify-between">
-          <span>Avg. price</span>
+          <span>{t('order.avgPrice')}</span>
           <span className="text-[var(--foreground)]">${currentPrice.toFixed(2)}</span>
         </div>
         <div className="flex justify-between">
-          <span>Potential profit</span>
+          <span>{t('order.potentialProfit')}</span>
           <span className="text-[var(--success)]">+${potentialProfit.toFixed(2)}</span>
         </div>
       </div>
@@ -222,12 +219,11 @@ export function OrderPanel({ marketId, yesPrice, noPrice, onchainMarketId, onTra
         <p className="text-xs text-[var(--danger)] mb-2">{error}</p>
       )}
 
-      {/* Action buttons */}
       {isOnchain ? (
         <div className="space-y-2">
           {!hasContracts && (
             <p className="text-xs text-[var(--muted)] text-center py-2">
-              Contracts not deployed on this network yet
+              {t('order.notDeployed')}
             </p>
           )}
           {hasContracts && !approveSuccess && (
@@ -236,7 +232,7 @@ export function OrderPanel({ marketId, yesPrice, noPrice, onchainMarketId, onTra
               disabled={onchainBusy || amount <= 0}
               className="w-full py-3 rounded-lg bg-[var(--border)] text-[var(--foreground)] font-semibold text-sm hover:opacity-90 transition-opacity disabled:opacity-50"
             >
-              {approving ? 'Approving...' : approveConfirming ? 'Confirming...' : `Approve ${amount} CRUX`}
+              {approving ? t('order.approving') : approveConfirming ? t('order.confirming') : t('order.approve', { n: amount })}
             </button>
           )}
           {hasContracts && approveSuccess && (
@@ -245,7 +241,7 @@ export function OrderPanel({ marketId, yesPrice, noPrice, onchainMarketId, onTra
               disabled={onchainBusy || amount <= 0 || onchainMarketId === undefined}
               className="w-full py-3 rounded-lg bg-[var(--accent)] text-black font-semibold text-sm hover:opacity-90 transition-opacity disabled:opacity-50"
             >
-              {buying ? 'Buying...' : buyConfirming ? 'Confirming...' : `Buy ${side} Shares`}
+              {buying ? t('order.buying') : buyConfirming ? t('order.confirming') : t('order.buyShares', { side })}
             </button>
           )}
           <TxStatus hash={approveHash} isConfirming={approveConfirming} isSuccess={approveSuccess} chainId={chainId} />
@@ -258,7 +254,7 @@ export function OrderPanel({ marketId, yesPrice, noPrice, onchainMarketId, onTra
           aria-label={loading ? 'Placing trade' : `Place ${side} trade for ${amount} dollars`}
           className="w-full py-3 rounded-lg bg-[var(--accent)] text-black font-semibold text-sm hover:opacity-90 transition-opacity disabled:opacity-50"
         >
-          {loading ? 'Placing...' : `Place ${side} Trade`}
+          {loading ? t('order.placing') : t('order.placeTrade', { side })}
         </button>
       )}
     </div>

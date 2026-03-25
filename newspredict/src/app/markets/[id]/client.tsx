@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { OrderPanel } from '@/components/market/order-panel';
 import { PriceChart } from '@/components/market/price-chart';
 import { MarketStats } from '@/components/market/market-stats';
+import { useLocale } from '@/lib/i18n/context';
 
 interface TradeItem {
   id: string;
@@ -29,14 +30,17 @@ interface MarketDetailClientProps {
   status: string;
 }
 
-function timeAgo(iso: string): string {
-  const diff = Date.now() - new Date(iso).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 1) return 'just now';
-  if (mins < 60) return `${mins}m ago`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h ago`;
-  return `${Math.floor(hrs / 24)}d ago`;
+function useTimeAgo() {
+  const { t } = useLocale();
+  return function timeAgo(iso: string): string {
+    const diff = Date.now() - new Date(iso).getTime();
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1) return t('common.justNow');
+    if (mins < 60) return t('common.mAgo', { n: mins });
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return t('common.hAgo', { n: hrs });
+    return t('common.dAgo', { n: Math.floor(hrs / 24) });
+  };
 }
 
 export function MarketDetailClient({
@@ -53,6 +57,8 @@ export function MarketDetailClient({
   status,
 }: MarketDetailClientProps) {
   const [tradeSuccess, setTradeSuccess] = useState(false);
+  const { t } = useLocale();
+  const timeAgo = useTimeAgo();
 
   return (
     <div className="px-4 space-y-4 pb-8">
@@ -71,7 +77,7 @@ export function MarketDetailClient({
 
       {tradeSuccess && (
         <div className="bg-[var(--success)]/15 text-[var(--success)] text-sm p-3 rounded-lg text-center">
-          Trade placed successfully!
+          {t('market.tradePlacedSuccess')}
         </div>
       )}
 
@@ -84,26 +90,26 @@ export function MarketDetailClient({
       />
 
       <div className="bg-[var(--card)] rounded-xl p-4">
-        <h3 className="text-sm font-semibold mb-3">Recent Activity</h3>
+        <h3 className="text-sm font-semibold mb-3">{t('market.recentActivity')}</h3>
         {recentTrades.length === 0 ? (
-          <p className="text-xs text-[var(--muted)]">No trades yet</p>
+          <p className="text-xs text-[var(--muted)]">{t('market.noTradesYet')}</p>
         ) : (
           <div className="space-y-2">
-            {recentTrades.map((t: any) => (
-              <div key={t.id} className="flex items-center justify-between text-xs">
+            {recentTrades.map((tr: any) => (
+              <div key={tr.id} className="flex items-center justify-between text-xs">
                 <span>
-                  <span className="text-[var(--foreground)] font-medium">{t.userName}</span>{' '}
-                  <span className="text-[var(--muted)]">bought</span>{' '}
+                  <span className="text-[var(--foreground)] font-medium">{tr.userName}</span>{' '}
+                  <span className="text-[var(--muted)]">{t('market.bought')}</span>{' '}
                   <span
                     className={
-                      t.side === 'YES' ? 'text-[var(--success)]' : 'text-[var(--danger)]'
+                      tr.side === 'YES' ? 'text-[var(--success)]' : 'text-[var(--danger)]'
                     }
                   >
-                    {t.side}
+                    {tr.side}
                   </span>{' '}
-                  <span className="text-[var(--muted)]">@ ${t.price.toFixed(2)}</span>
+                  <span className="text-[var(--muted)]">@ ${tr.price.toFixed(2)}</span>
                 </span>
-                <span className="text-[var(--muted)]">{timeAgo(t.createdAt)}</span>
+                <span className="text-[var(--muted)]">{timeAgo(tr.createdAt)}</span>
               </div>
             ))}
           </div>

@@ -8,6 +8,7 @@ import { QuickPollCard } from '@/components/cards/quick-poll-card';
 import { BreakingBanner } from '@/components/cards/breaking-banner';
 import { ResolvedCard } from '@/components/cards/resolved-card';
 import { chaosClient } from '@/lib/chaos-client';
+import { T } from '@/components/i18n-text';
 
 export const dynamic = 'force-dynamic';
 
@@ -86,9 +87,9 @@ export default async function HomePage() {
 
       <section className="px-4 mb-6">
         <div className="flex justify-between items-center mb-3">
-          <h2 className="text-lg font-bold">Top Stories</h2>
+          <h2 className="text-lg font-bold"><T k="home.topStories" /></h2>
           <span className="text-xs text-[var(--muted)]">
-            {hasData ? `${markets.length} active markets` : 'Waiting for data...'}
+            {hasData ? <T k="home.activeMarkets" vars={{ n: markets.length }} /> : <T k="home.waitingForData" />}
           </span>
         </div>
         {hero ? (
@@ -103,14 +104,14 @@ export default async function HomePage() {
           />
         ) : (
           <div className="rounded-xl border border-[var(--border)] p-6 text-center text-[var(--muted)] text-sm">
-            No markets yet. Seed from CHAOS: <code className="text-xs">curl -X GET localhost:3000/api/market-seeds</code>
+            <T k="home.noMarketsYet" /> <code className="text-xs">curl -X GET localhost:3000/api/market-seeds</code>
           </div>
         )}
       </section>
 
       {miniCards.length > 0 && (
         <section className="mb-6">
-          <h2 className="text-lg font-bold px-4 mb-3">Markets</h2>
+          <h2 className="text-lg font-bold px-4 mb-3"><T k="home.marketsSection" /></h2>
           <div className="flex gap-3 px-4 overflow-x-auto no-scrollbar">
             {miniCards.map((m: any) => (
               <MarketMiniCard key={m.label} {...m} />
@@ -121,7 +122,7 @@ export default async function HomePage() {
 
       {trending.length > 0 && (
         <section className="px-4 mb-6">
-          <h2 className="text-lg font-bold mb-3">Trending</h2>
+          <h2 className="text-lg font-bold mb-3"><T k="home.trending" /></h2>
           <div className="space-y-3">
             {trending.map((t: any) => (
               <NewsPredictionCard key={t.title} {...t} />
@@ -149,7 +150,7 @@ export default async function HomePage() {
 
       {resolvedCard && (
         <section className="px-4 mb-6">
-          <h2 className="text-lg font-bold mb-3">Just Resolved</h2>
+          <h2 className="text-lg font-bold mb-3"><T k="home.justResolved" /></h2>
           <ResolvedCard
             title={resolvedCard.question}
             result={resolvedCard.resolutionResult === 'yes' ? 'win' : 'loss'}

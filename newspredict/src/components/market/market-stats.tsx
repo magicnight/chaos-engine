@@ -1,3 +1,7 @@
+'use client';
+
+import { useLocale } from '@/lib/i18n/context';
+
 interface MarketStatsProps {
   volume: number;
   traderCount: number;
@@ -12,14 +16,6 @@ function formatVolume(v: number): string {
   return `$${v.toFixed(0)}`;
 }
 
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  });
-}
-
 export function MarketStats({
   volume,
   traderCount,
@@ -27,25 +23,32 @@ export function MarketStats({
   resolutionCriteria,
   resolutionSource,
 }: MarketStatsProps) {
+  const { t, locale } = useLocale();
+
+  const formattedDate = new Date(closeAt).toLocaleDateString(
+    locale === 'zh' ? 'zh-CN' : 'en-US',
+    { month: 'short', day: 'numeric', year: 'numeric' }
+  );
+
   return (
     <div className="bg-[var(--card)] rounded-xl p-4 space-y-3">
       <div className="flex justify-between text-sm">
-        <span className="text-[var(--muted)]">Volume</span>
+        <span className="text-[var(--muted)]">{t('common.volume')}</span>
         <span className="font-semibold">{formatVolume(volume)}</span>
       </div>
       <div className="flex justify-between text-sm">
-        <span className="text-[var(--muted)]">Traders</span>
+        <span className="text-[var(--muted)]">{t('common.traders')}</span>
         <span className="font-semibold">{traderCount.toLocaleString()}</span>
       </div>
       <div className="flex justify-between text-sm">
-        <span className="text-[var(--muted)]">Closes</span>
-        <span className="font-semibold">{formatDate(closeAt)}</span>
+        <span className="text-[var(--muted)]">{t('market.closesAt')}</span>
+        <span className="font-semibold">{formattedDate}</span>
       </div>
       <div className="border-t border-[var(--border)] pt-3">
-        <p className="text-xs text-[var(--muted)] mb-1">Resolution criteria</p>
+        <p className="text-xs text-[var(--muted)] mb-1">{t('market.resolutionCriteria')}</p>
         <p className="text-sm">{resolutionCriteria}</p>
         {resolutionSource && (
-          <p className="text-xs text-[var(--accent)] mt-1">Source: {resolutionSource}</p>
+          <p className="text-xs text-[var(--accent)] mt-1">{t('market.resolutionSource')}: {resolutionSource}</p>
         )}
       </div>
     </div>

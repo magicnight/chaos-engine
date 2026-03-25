@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useLocale } from '@/lib/i18n/context';
 
 interface RankingEntry {
   userId: string;
@@ -14,16 +15,17 @@ interface RankingEntry {
 const PERIODS = ['daily', 'weekly', 'alltime'] as const;
 type Period = (typeof PERIODS)[number];
 
-const PERIOD_LABELS: Record<Period, string> = {
-  daily: 'Daily',
-  weekly: 'Weekly',
-  alltime: 'All Time',
+const PERIOD_KEYS: Record<Period, string> = {
+  daily: 'leaderboard.daily',
+  weekly: 'leaderboard.weekly',
+  alltime: 'leaderboard.allTime',
 };
 
 export default function LeaderboardPage() {
   const [period, setPeriod] = useState<Period>('weekly');
   const [rankings, setRankings] = useState<RankingEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const { t } = useLocale();
 
   useEffect(() => {
     setLoading(true);
@@ -36,7 +38,7 @@ export default function LeaderboardPage() {
 
   return (
     <div className="p-4">
-      <h1 className="text-2xl font-bold mb-4">Leaderboard</h1>
+      <h1 className="text-2xl font-bold mb-4">{t('leaderboard.title')}</h1>
 
       <div className="flex gap-2 mb-6">
         {PERIODS.map((p) => (
@@ -49,7 +51,7 @@ export default function LeaderboardPage() {
                 : 'bg-[var(--card)] text-[var(--muted)]'
             }`}
           >
-            {PERIOD_LABELS[p]}
+            {t(PERIOD_KEYS[p])}
           </button>
         ))}
       </div>
@@ -61,7 +63,7 @@ export default function LeaderboardPage() {
           ))}
         </div>
       ) : rankings.length === 0 ? (
-        <p className="text-[var(--muted)] text-center py-8">No traders yet</p>
+        <p className="text-[var(--muted)] text-center py-8">{t('leaderboard.noTraders')}</p>
       ) : (
         <div className="space-y-2">
           {rankings.map((entry, i) => {
@@ -88,10 +90,10 @@ export default function LeaderboardPage() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium truncate">
-                    {entry.name || 'Anonymous'}
+                    {entry.name || t('common.anonymous')}
                   </p>
                   <p className="text-xs text-[var(--muted)]">
-                    {entry.totalTrades} trades
+                    {entry.totalTrades} {t('common.trades')}
                   </p>
                 </div>
                 <div className="text-right">
@@ -102,7 +104,7 @@ export default function LeaderboardPage() {
                   >
                     {isPositive ? '+' : ''}${entry.pnl.toFixed(0)}
                   </p>
-                  <p className="text-xs text-[var(--muted)]">{entry.winRate}% WR</p>
+                  <p className="text-xs text-[var(--muted)]">{entry.winRate}% {t('leaderboard.winRateShort')}</p>
                 </div>
               </div>
             );

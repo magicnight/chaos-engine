@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useLocale } from '@/lib/i18n/context';
 
 interface ActivityItem {
   id: string;
@@ -22,6 +23,7 @@ interface ActivityItem {
 export default function ActivityPage() {
   const [items, setItems] = useState<ActivityItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const { t } = useLocale();
 
   useEffect(() => {
     fetch('/api/portfolio')
@@ -80,7 +82,7 @@ export default function ActivityPage() {
   if (loading) {
     return (
       <div className="p-4">
-        <h1 className="text-2xl font-bold mb-4">Activity</h1>
+        <h1 className="text-2xl font-bold mb-4">{t('activity.title')}</h1>
         <div className="space-y-3">
           {[1, 2, 3].map((i: any) => (
             <div key={i} className="h-16 rounded-xl bg-[var(--card)] animate-pulse" />
@@ -92,10 +94,10 @@ export default function ActivityPage() {
 
   return (
     <div className="p-4">
-      <h1 className="text-2xl font-bold mb-4">Activity</h1>
+      <h1 className="text-2xl font-bold mb-4">{t('activity.title')}</h1>
 
       {items.length === 0 ? (
-        <p className="text-[var(--muted)] text-center py-8">No activity yet</p>
+        <p className="text-[var(--muted)] text-center py-8">{t('activity.noActivity')}</p>
       ) : (
         <div className="space-y-3">
           {items.map((item: any) => (
@@ -107,13 +109,13 @@ export default function ActivityPage() {
               {item.type === 'trade' ? (
                 <>
                   <div className="flex items-start gap-2 mb-1">
-                    <span className="text-sm">Your trade on</span>
+                    <span className="text-sm">{t('activity.yourTradeOn')}</span>
                   </div>
                   <p className="text-sm font-medium mb-1">
                     &quot;{item.market.question}&quot;
                   </p>
                   <p className="text-xs text-[var(--muted)]">
-                    {item.shares?.toFixed(1)} shares{' '}
+                    {item.shares?.toFixed(1)} {t('common.shares')}{' '}
                     <span
                       className={
                         item.side === 'YES'
@@ -130,7 +132,7 @@ export default function ActivityPage() {
                 <>
                   <div className="flex items-start gap-2 mb-1">
                     <span className="text-sm">
-                      Market resolved
+                      {t('activity.marketResolved')}
                     </span>
                   </div>
                   <p className="text-sm font-medium mb-1">
@@ -141,7 +143,7 @@ export default function ActivityPage() {
                       item.won ? 'text-[var(--success)]' : 'text-[var(--danger)]'
                     }`}
                   >
-                    {item.won ? 'Won' : 'Lost'}: {item.won ? '+' : ''}$
+                    {item.won ? t('activity.won') : t('activity.lost')}: {item.won ? '+' : ''}$
                     {item.pnl?.toFixed(2)}
                   </p>
                 </>

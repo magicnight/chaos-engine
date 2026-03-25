@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useLocale } from '@/lib/i18n/context';
 
 interface ProfileData {
   user: {
@@ -29,6 +30,7 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [followerCount, setFollowerCount] = useState(0);
   const [followingCount, setFollowingCount] = useState(0);
+  const { t, locale } = useLocale();
 
   useEffect(() => {
     fetch('/api/portfolio')
@@ -38,7 +40,6 @@ export default function ProfilePage() {
           setLoading(false);
           return;
         }
-        // Build profile from portfolio data
         setData({
           user: {
             id: '',
@@ -59,7 +60,7 @@ export default function ProfilePage() {
   if (loading) {
     return (
       <div className="p-4">
-        <h1 className="text-2xl font-bold mb-4">Profile</h1>
+        <h1 className="text-2xl font-bold mb-4">{t('profile.title')}</h1>
         <div className="h-40 rounded-xl bg-[var(--card)] animate-pulse" />
       </div>
     );
@@ -68,21 +69,21 @@ export default function ProfilePage() {
   if (!data) {
     return (
       <div className="p-4">
-        <h1 className="text-2xl font-bold mb-4">Profile</h1>
+        <h1 className="text-2xl font-bold mb-4">{t('profile.title')}</h1>
         <p className="text-[var(--muted)] text-center py-8">
           <Link href="/sign-in" className="text-[var(--accent)] underline">
-            Sign in
+            {t('common.signIn')}
           </Link>{' '}
-          to view your profile
+          {t('profile.signInPrompt')}
         </p>
       </div>
     );
   }
 
-  const joinDate = new Date(data.user.createdAt).toLocaleDateString('en-US', {
-    month: 'short',
-    year: 'numeric',
-  });
+  const joinDate = new Date(data.user.createdAt).toLocaleDateString(
+    locale === 'zh' ? 'zh-CN' : 'en-US',
+    { month: 'short', year: 'numeric' }
+  );
   const isPositive = data.user.pnl >= 0;
 
   return (
@@ -92,16 +93,16 @@ export default function ProfilePage() {
           {data.user.name?.[0]?.toUpperCase() || '?'}
         </div>
         <div>
-          <h1 className="text-xl font-bold">{data.user.name || 'Anonymous'}</h1>
-          <p className="text-sm text-[var(--muted)]">Joined {joinDate}</p>
+          <h1 className="text-xl font-bold">{data.user.name || t('common.anonymous')}</h1>
+          <p className="text-sm text-[var(--muted)]">{t('profile.joined', { date: joinDate })}</p>
         </div>
       </div>
 
       <div className="flex items-center gap-4 mb-6">
         <span className="text-sm text-[var(--muted)]">
-          {data.user.totalTrades} trades
+          {data.user.totalTrades} {t('common.trades')}
         </span>
-        <span className="text-sm text-[var(--muted)]">{data.user.winRate}% win</span>
+        <span className="text-sm text-[var(--muted)]">{data.user.winRate}% {t('profile.win')}</span>
         <span
           className={`text-sm font-bold ${
             isPositive ? 'text-[var(--success)]' : 'text-[var(--danger)]'
@@ -114,34 +115,34 @@ export default function ProfilePage() {
       <div className="flex gap-6 mb-6">
         <div className="text-center">
           <p className="text-lg font-bold">{followingCount}</p>
-          <p className="text-xs text-[var(--muted)]">Following</p>
+          <p className="text-xs text-[var(--muted)]">{t('profile.following')}</p>
         </div>
         <div className="text-center">
           <p className="text-lg font-bold">{followerCount}</p>
-          <p className="text-xs text-[var(--muted)]">Followers</p>
+          <p className="text-xs text-[var(--muted)]">{t('profile.followers')}</p>
         </div>
       </div>
 
       <section>
-        <h2 className="text-lg font-bold mb-3">Quick Links</h2>
+        <h2 className="text-lg font-bold mb-3">{t('profile.quickLinks')}</h2>
         <div className="space-y-2">
           <Link
             href="/portfolio"
             className="block rounded-xl bg-[var(--card)] p-4 text-sm active:bg-[var(--card-hover)]"
           >
-            View Portfolio
+            {t('profile.viewPortfolio')}
           </Link>
           <Link
             href="/leaderboard"
             className="block rounded-xl bg-[var(--card)] p-4 text-sm active:bg-[var(--card-hover)]"
           >
-            Leaderboard
+            {t('profile.leaderboard')}
           </Link>
           <Link
             href="/activity"
             className="block rounded-xl bg-[var(--card)] p-4 text-sm active:bg-[var(--card-hover)]"
           >
-            Activity
+            {t('profile.activity')}
           </Link>
         </div>
       </section>

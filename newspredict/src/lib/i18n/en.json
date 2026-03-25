@@ -1,0 +1,192 @@
+{
+  "common": {
+    "loading": "Loading...",
+    "error": "Error",
+    "networkError": "Network error",
+    "noData": "No data",
+    "signIn": "Sign in",
+    "signUp": "Sign up",
+    "guest": "Guest",
+    "anonymous": "Anonymous",
+    "yes": "YES",
+    "no": "NO",
+    "back": "Back",
+    "volume": "volume",
+    "traders": "traders",
+    "trades": "trades",
+    "shares": "shares",
+    "new": "New",
+    "live": "LIVE",
+    "hot": "HOT",
+    "justNow": "just now",
+    "mAgo": "{n}m ago",
+    "hAgo": "{n}h ago",
+    "dAgo": "{n}d ago"
+  },
+  "nav": {
+    "home": "Home",
+    "explore": "Explore",
+    "create": "Create",
+    "activity": "Activity",
+    "profile": "Profile"
+  },
+  "topBar": {
+    "goodMorning": "Good morning",
+    "goodAfternoon": "Good afternoon",
+    "goodEvening": "Good evening"
+  },
+  "categories": {
+    "all": "All",
+    "markets": "Markets",
+    "politics": "Politics",
+    "tech": "Tech",
+    "conflict": "Conflict",
+    "climate": "Climate",
+    "health": "Health",
+    "cyber": "Cyber",
+    "space": "Space",
+    "science": "Science",
+    "entertainment": "Entertainment",
+    "sports": "Sports",
+    "other": "Other"
+  },
+  "home": {
+    "topStories": "Top Stories",
+    "activeMarkets": "{n} active markets",
+    "waitingForData": "Waiting for data...",
+    "noMarketsYet": "No markets yet. Seed from CHAOS:",
+    "marketsSection": "Markets",
+    "trending": "Trending",
+    "justResolved": "Just Resolved"
+  },
+  "explore": {
+    "title": "Explore",
+    "searchPlaceholder": "Search markets...",
+    "loadingMarkets": "Loading markets...",
+    "noMarketsFound": "No markets found"
+  },
+  "market": {
+    "tradersCount": "{n} traders",
+    "recentActivity": "Recent Activity",
+    "noTradesYet": "No trades yet",
+    "bought": "bought",
+    "tradePlacedSuccess": "Trade placed successfully!",
+    "closesAt": "Closes",
+    "resolutionCriteria": "Resolution Criteria",
+    "resolutionSource": "Resolution Source",
+    "marketStatus": "Status",
+    "open": "Open",
+    "resolved": "Resolved",
+    "closed": "Closed"
+  },
+  "order": {
+    "virtualCredits": "Virtual Credits",
+    "onChain": "On-Chain (CRUX)",
+    "cruxBalance": "CRUX Balance",
+    "buyYes": "BUY YES",
+    "buyNo": "BUY NO",
+    "amount": "Amount",
+    "estShares": "Est. shares",
+    "avgPrice": "Avg. price",
+    "potentialProfit": "Potential profit",
+    "placeTrade": "Place {side} Trade",
+    "placing": "Placing...",
+    "approve": "Approve {n} CRUX",
+    "approving": "Approving...",
+    "confirming": "Confirming...",
+    "confirmingTx": "Confirming transaction...",
+    "txConfirmed": "Transaction confirmed",
+    "buyShares": "Buy {side} Shares",
+    "buying": "Buying...",
+    "notDeployed": "Contracts not deployed on this network yet"
+  },
+  "portfolio": {
+    "title": "Portfolio",
+    "signInToView": "Sign in to view your portfolio",
+    "balance": "Balance",
+    "unrealizedPnl": "Unrealized P&L",
+    "activePositions": "Active Positions ({n})",
+    "resolvedPositions": "Resolved ({n})",
+    "totalPnl": "P&L",
+    "winRate": "Win Rate",
+    "positions": "Positions"
+  },
+  "leaderboard": {
+    "title": "Leaderboard",
+    "daily": "Daily",
+    "weekly": "Weekly",
+    "allTime": "All Time",
+    "noTraders": "No traders yet",
+    "winRateShort": "WR"
+  },
+  "activity": {
+    "title": "Activity",
+    "noActivity": "No activity yet",
+    "yourTradeOn": "Your trade on",
+    "marketResolved": "Market resolved",
+    "won": "Won",
+    "lost": "Lost"
+  },
+  "profile": {
+    "title": "Profile",
+    "signInPrompt": "to view your profile",
+    "joined": "Joined {date}",
+    "win": "win",
+    "following": "Following",
+    "followers": "Followers",
+    "quickLinks": "Quick Links",
+    "viewPortfolio": "View Portfolio",
+    "leaderboard": "Leaderboard",
+    "activity": "Activity"
+  },
+  "create": {
+    "title": "Create Market",
+    "question": "Question",
+    "questionPlaceholder": "Will X happen by Y date?",
+    "description": "Description",
+    "descriptionPlaceholder": "Additional context for this market...",
+    "category": "Category",
+    "closeDate": "Close Date",
+    "resolutionCriteria": "Resolution Criteria",
+    "resolutionCriteriaPlaceholder": "How will this market be resolved? (e.g., 'BTC price above $100K on CoinGecko')",
+    "resolutionSource": "Resolution Source",
+    "resolutionSourcePlaceholder": "e.g., CoinGecko, Reuters, NOAA",
+    "required": "Please fill in all required fields",
+    "creating": "Creating...",
+    "createMarket": "Create Market"
+  },
+  "summary": {
+    "pnl": "P&L",
+    "active": "Active",
+    "winRate": "Win%"
+  },
+  "offline": {
+    "title": "You're Offline",
+    "message": "Check your internet connection and try again."
+  },
+  "hero": {
+    "liveNow": "LIVE NOW"
+  },
+  "breaking": {
+    "prefix": "BREAKING"
+  },
+  "resolved": {
+    "win": "You won!",
+    "loss": "Better luck next time"
+  },
+  "poll": {
+    "quickPoll": "Quick Poll",
+    "tradersActive": "{n} traders active"
+  },
+  "auth": {
+    "signInTitle": "Sign In",
+    "signUpTitle": "Sign Up",
+    "guestLogin": "Continue as Guest",
+    "walletLogin": "Connect Wallet"
+  },
+  "locale": {
+    "en": "EN",
+    "zh": "中文",
+    "switchLang": "Language"
+  }
+}

@@ -2,10 +2,12 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { useLocale } from '@/lib/i18n/context';
 
 export default function SignUpPage() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
+  const { t } = useLocale();
 
   function handleOAuth(provider: string) {
     window.location.href = `/api/auth/signin/${provider}`;
@@ -65,14 +67,14 @@ export default function SignUpPage() {
             type="submit"
             className="w-full rounded-xl bg-[var(--accent)] px-4 py-3 text-sm font-medium text-black hover:opacity-90 transition-opacity"
           >
-            Sign Up with Email
+            {t('common.signUp')}
           </button>
         </form>
 
         <p className="text-center text-sm text-[var(--muted)]">
           Already have an account?{' '}
           <Link href="/sign-in" className="text-[var(--accent)] hover:underline">
-            Sign in
+            {t('common.signIn')}
           </Link>
         </p>
       </div>

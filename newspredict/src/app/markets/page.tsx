@@ -3,6 +3,7 @@ import { db } from '@/lib/db';
 import { markets } from '@/lib/db/schema';
 import { eq, desc } from 'drizzle-orm';
 import { getPrice } from '@/lib/market-engine';
+import { T } from '@/components/i18n-text';
 
 export const dynamic = 'force-dynamic';
 
@@ -37,17 +38,17 @@ export default async function MarketsPage() {
   return (
     <div>
       <div className="px-4 pt-4 pb-2 flex justify-between items-center">
-        <h1 className="text-xl font-bold">Markets</h1>
+        <h1 className="text-xl font-bold"><T k="home.marketsSection" /></h1>
         <Link
           href="/create"
           className="px-3 py-1.5 rounded-full bg-[var(--accent)] text-black text-xs font-semibold"
         >
-          + Create
+          + <T k="nav.create" />
         </Link>
       </div>
 
       {items.length === 0 && (
-        <p className="text-sm text-[var(--muted)] text-center py-12">No open markets yet</p>
+        <p className="text-sm text-[var(--muted)] text-center py-12"><T k="explore.noMarketsFound" /></p>
       )}
 
       <div className="px-4 space-y-3 mt-2">

@@ -1,0 +1,192 @@
+{
+  "common": {
+    "loading": "加载中...",
+    "error": "错误",
+    "networkError": "网络错误",
+    "noData": "暂无数据",
+    "signIn": "登录",
+    "signUp": "注册",
+    "guest": "访客",
+    "anonymous": "匿名",
+    "yes": "看涨",
+    "no": "看跌",
+    "back": "返回",
+    "volume": "交易量",
+    "traders": "交易者",
+    "trades": "交易",
+    "shares": "份额",
+    "new": "新",
+    "live": "实时",
+    "hot": "热门",
+    "justNow": "刚刚",
+    "mAgo": "{n}分钟前",
+    "hAgo": "{n}小时前",
+    "dAgo": "{n}天前"
+  },
+  "nav": {
+    "home": "首页",
+    "explore": "探索",
+    "create": "创建",
+    "activity": "动态",
+    "profile": "我的"
+  },
+  "topBar": {
+    "goodMorning": "早上好",
+    "goodAfternoon": "下午好",
+    "goodEvening": "晚上好"
+  },
+  "categories": {
+    "all": "全部",
+    "markets": "市场",
+    "politics": "政治",
+    "tech": "科技",
+    "conflict": "冲突",
+    "climate": "气候",
+    "health": "健康",
+    "cyber": "网络安全",
+    "space": "太空",
+    "science": "科学",
+    "entertainment": "娱乐",
+    "sports": "体育",
+    "other": "其他"
+  },
+  "home": {
+    "topStories": "热门事件",
+    "activeMarkets": "{n} 个活跃市场",
+    "waitingForData": "等待数据...",
+    "noMarketsYet": "暂无市场。从 CHAOS 生成：",
+    "marketsSection": "市场",
+    "trending": "趋势",
+    "justResolved": "最新结算"
+  },
+  "explore": {
+    "title": "探索",
+    "searchPlaceholder": "搜索市场...",
+    "loadingMarkets": "加载市场中...",
+    "noMarketsFound": "未找到市场"
+  },
+  "market": {
+    "tradersCount": "{n} 位交易者",
+    "recentActivity": "最近动态",
+    "noTradesYet": "暂无交易",
+    "bought": "买入",
+    "tradePlacedSuccess": "交易成功！",
+    "closesAt": "截止时间",
+    "resolutionCriteria": "解决标准",
+    "resolutionSource": "数据来源",
+    "marketStatus": "状态",
+    "open": "进行中",
+    "resolved": "已结算",
+    "closed": "已关闭"
+  },
+  "order": {
+    "virtualCredits": "虚拟额度",
+    "onChain": "链上 (CRUX)",
+    "cruxBalance": "CRUX 余额",
+    "buyYes": "买入看涨",
+    "buyNo": "买入看跌",
+    "amount": "数量",
+    "estShares": "预计份额",
+    "avgPrice": "均价",
+    "potentialProfit": "预期收益",
+    "placeTrade": "买入{side}",
+    "placing": "交易中...",
+    "approve": "授权 {n} CRUX",
+    "approving": "授权中...",
+    "confirming": "确认中...",
+    "confirmingTx": "正在确认交易...",
+    "txConfirmed": "交易已确认",
+    "buyShares": "买入{side}份额",
+    "buying": "购买中...",
+    "notDeployed": "合约尚未部署到此网络"
+  },
+  "portfolio": {
+    "title": "投资组合",
+    "signInToView": "登录以查看投资组合",
+    "balance": "余额",
+    "unrealizedPnl": "未实现盈亏",
+    "activePositions": "活跃持仓 ({n})",
+    "resolvedPositions": "已结算 ({n})",
+    "totalPnl": "盈亏",
+    "winRate": "胜率",
+    "positions": "持仓"
+  },
+  "leaderboard": {
+    "title": "排行榜",
+    "daily": "今日",
+    "weekly": "本周",
+    "allTime": "总榜",
+    "noTraders": "暂无交易者",
+    "winRateShort": "胜率"
+  },
+  "activity": {
+    "title": "动态",
+    "noActivity": "暂无动态",
+    "yourTradeOn": "你的交易",
+    "marketResolved": "市场已结算",
+    "won": "盈利",
+    "lost": "亏损"
+  },
+  "profile": {
+    "title": "个人主页",
+    "signInPrompt": "以查看个人主页",
+    "joined": "加入于 {date}",
+    "win": "胜率",
+    "following": "关注",
+    "followers": "粉丝",
+    "quickLinks": "快捷入口",
+    "viewPortfolio": "查看投资组合",
+    "leaderboard": "排行榜",
+    "activity": "动态"
+  },
+  "create": {
+    "title": "创建市场",
+    "question": "问题",
+    "questionPlaceholder": "X 会在 Y 日期之前发生吗？",
+    "description": "描述",
+    "descriptionPlaceholder": "为此市场提供更多背景信息...",
+    "category": "分类",
+    "closeDate": "截止日期",
+    "resolutionCriteria": "解决标准",
+    "resolutionCriteriaPlaceholder": "该市场将如何判定？（例：BTC 在 CoinGecko 上突破 $100K）",
+    "resolutionSource": "数据来源",
+    "resolutionSourcePlaceholder": "例：CoinGecko, Reuters, NOAA",
+    "required": "请填写所有必填字段",
+    "creating": "创建中...",
+    "createMarket": "创建市场"
+  },
+  "summary": {
+    "pnl": "盈亏",
+    "active": "活跃",
+    "winRate": "胜率"
+  },
+  "offline": {
+    "title": "您已离线",
+    "message": "请检查网络连接后重试。"
+  },
+  "hero": {
+    "liveNow": "实时直播"
+  },
+  "breaking": {
+    "prefix": "突发"
+  },
+  "resolved": {
+    "win": "恭喜获胜！",
+    "loss": "下次好运"
+  },
+  "poll": {
+    "quickPoll": "快速投票",
+    "tradersActive": "{n} 位交易者参与"
+  },
+  "auth": {
+    "signInTitle": "登录",
+    "signUpTitle": "注册",
+    "guestLogin": "以访客身份继续",
+    "walletLogin": "连接钱包"
+  },
+  "locale": {
+    "en": "EN",
+    "zh": "中文",
+    "switchLang": "语言"
+  }
+}

@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useLocale } from '@/lib/i18n/context';
 
 interface HeroCardProps {
   title: string;
@@ -25,6 +26,7 @@ export function HeroCard({
   imageUrl,
   href,
 }: HeroCardProps) {
+  const { t } = useLocale();
   const Wrapper = href ? Link : 'div';
   const wrapperProps = href ? { href } : {};
   return (
@@ -43,7 +45,7 @@ export function HeroCard({
             {isLive && (
               <span className="badge badge-live">
                 <span className="w-1.5 h-1.5 rounded-full bg-[var(--danger)] animate-pulse" />
-                LIVE
+                {t('common.live')}
               </span>
             )}
             <span className="badge badge-new">{category}</span>
