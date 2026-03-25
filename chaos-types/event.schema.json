@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://chaos.dev/schemas/event.json",
+  "title": "ChaosEvent",
+  "description": "Schema for a structured event extracted from sweep data.",
+  "type": "object",
+  "properties": {
+    "id": { "type": "string" },
+    "category": {
+      "type": "string",
+      "enum": ["news", "conflict", "natural", "health", "cyber", "economic", "political"]
+    },
+    "title": { "type": "string" },
+    "source": { "type": "string" },
+    "lat": { "type": ["number", "null"] },
+    "lon": { "type": ["number", "null"] },
+    "timestamp": { "type": "string" },
+    "severity": { "type": "string" }
+  },
+  "required": ["id", "category", "title", "source"]
+}

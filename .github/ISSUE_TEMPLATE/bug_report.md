@@ -1,6 +1,6 @@
 ---
 name: Bug report
-about: Report a reproducible problem in Crucix
+about: Report a reproducible problem in CHAOS
 title: "[Bug] "
 labels: bug
 assignees: ""

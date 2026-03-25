@@ -1,0 +1,467 @@
+openapi: "3.0.3"
+info:
+  title: CHAOS Engine API
+  description: >
+    C.H.A.O.S. -- Connected Human-Augmented OSINT Suite.
+    35 sources, single binary, zero cloud.
+  version: "0.1.0"
+  license:
+    name: AGPL-3.0-only
+
+servers:
+  - url: http://localhost:3117
+    description: Local development
+  - url: https://your-domain.com
+    description: Production (behind Caddy reverse proxy)
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-CHAOS-Key
+      description: Required for extended endpoints in public mode.
+
+  schemas:
+    ChaosMeta:
+      type: object
+      properties:
+        version:
+          type: string
+          example: "0.1.0"
+        timestamp:
+          type: string
+          format: date-time
+        sourcesQueried:
+          type: integer
+        sourcesOk:
+          type: integer
+        sourcesFailed:
+          type: integer
+        totalDurationMs:
+          type: integer
+
+    SweepData:
+      type: object
+      properties:
+        chaos:
+          $ref: "#/components/schemas/ChaosMeta"
+        sources:
+          type: object
+          additionalProperties: true
+          description: Keyed by source name, values are source-specific JSON.
+        errors:
+          type: array
+          items:
+            $ref: "#/components/schemas/SourceError"
+        timing:
+          type: object
+          additionalProperties:
+            type: object
+            properties:
+              status:
+                type: string
+                enum: [ok, error, timeout]
+              ms:
+                type: integer
+        delta:
+          $ref: "#/components/schemas/Delta"
+        correlations:
+          type: array
+          items:
+            $ref: "#/components/schemas/Correlation"
+        analysis:
+          $ref: "#/components/schemas/Analysis"
+
+    SourceError:
+      type: object
+      properties:
+        name:
+          type: string
+        error:
+          type: string
+        status:
+          type: string
+          enum: [error, timeout]
+
+    Delta:
+      type: object
+      properties:
+        summary:
+          type: object
+          properties:
+            total_changes:
+              type: integer
+            critical_changes:
+              type: integer
+            direction:
+              type: string
+              enum: [improving, stable, deteriorating]
+        changes:
+          type: array
+          items:
+            type: object
+            properties:
+              metric:
+                type: string
+              severity:
+                type: string
+              direction:
+                type: string
+              detail:
+                type: string
+
+    Correlation:
+      type: object
+      properties:
+        name:
+          type: string
+        severity:
+          type: string
+          enum: [low, medium, high, critical]
+        sources:
+          type: array
+          items:
+            type: string
+        description:
+          type: string
+        indicators:
+          type: array
+          items:
+            type: string
+
+    Analysis:
+      type: object
+      properties:
+        text:
+          type: string
+        model:
+          type: string
+        input_tokens:
+          type: integer
+        output_tokens:
+          type: integer
+
+    HealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: ok
+        uptime_seconds:
+          type: integer
+        last_sweep:
+          type: string
+          format: date-time
+          nullable: true
+        next_sweep:
+          type: string
+          format: date-time
+          nullable: true
+        sources:
+          type: object
+          properties:
+            ok:
+              type: integer
+            error:
+              type: integer
+        llm:
+          type: object
+          properties:
+            provider:
+              type: string
+            model:
+              type: string
+            configured:
+              type: boolean
+        sweep_in_progress:
+          type: boolean
+        database_path:
+          type: string
+        database_size_bytes:
+          type: integer
+        degraded_sources:
+          type: array
+          items:
+            type: string
+
+    TrendsResponse:
+      type: object
+      properties:
+        sweeps:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: integer
+              timestamp:
+                type: string
+                format: date-time
+              duration_ms:
+                type: integer
+              sources_ok:
+                type: integer
+              sources_err:
+                type: integer
+              data:
+                type: object
+        count:
+          type: integer
+
+    SourceInfo:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        tier:
+          type: integer
+        reliability:
+          type: string
+          description: Success rate as percentage string, e.g. "95%"
+
+    QueryRequest:
+      type: object
+      properties:
+        source:
+          type: string
+        limit:
+          type: integer
+          default: 10
+
+    ResolveCheckRequest:
+      type: object
+      properties:
+        source:
+          type: string
+        condition:
+          type: string
+
+    ResolveCheckResponse:
+      type: object
+      properties:
+        met:
+          type: boolean
+        value:
+          type: number
+          nullable: true
+        source:
+          type: string
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+
+paths:
+  /:
+    get:
+      summary: Dashboard
+      description: Returns the CHAOS MONITOR dashboard HTML page.
+      responses:
+        "200":
+          description: HTML dashboard
+          content:
+            text/html:
+              schema:
+                type: string
+
+  /api/v1/data:
+    get:
+      summary: Latest sweep data
+      description: Returns the full result of the most recent intelligence sweep.
+      responses:
+        "200":
+          description: Sweep data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SweepData"
+        "503":
+          description: No data yet (first sweep in progress)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/v1/health:
+    get:
+      summary: Health check
+      description: System health including uptime, source status, LLM info, and database stats.
+      responses:
+        "200":
+          description: Health status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+
+  /api/v1/trends:
+    get:
+      summary: Historical trends
+      description: Returns the last 50 sweeps with full data for trend analysis.
+      responses:
+        "200":
+          description: Historical sweep data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TrendsResponse"
+
+  /api/v1/analysis:
+    get:
+      summary: Latest LLM analysis
+      description: Returns the most recent LLM-generated intelligence briefing.
+      responses:
+        "200":
+          description: Analysis text
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  analysis:
+                    type: string
+        "404":
+          description: No analysis available yet
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/v1/sources:
+    get:
+      summary: Source list
+      description: Lists all intelligence sources with tier, description, and reliability stats.
+      responses:
+        "200":
+          description: Source list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  sources:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/SourceInfo"
+
+  /api/v1/sse:
+    get:
+      summary: Server-Sent Events stream
+      description: >
+        Real-time event stream. Sends `{"type":"update"}` when new sweep data is
+        available and `{"type":"sweep_start"}` when a sweep begins.
+      responses:
+        "200":
+          description: SSE stream
+          content:
+            text/event-stream:
+              schema:
+                type: string
+
+  /api/v1/events:
+    get:
+      summary: Structured events
+      description: Structured events from all sources with category and geo tags.
+      security:
+        - ApiKeyAuth: []
+      responses:
+        "200":
+          description: Event list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  events:
+                    type: array
+                    items:
+                      type: object
+        "403":
+          description: Invalid or missing API key (public mode)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/v1/correlations:
+    get:
+      summary: Cross-source correlations
+      description: Correlation signals detected across multiple intelligence domains.
+      security:
+        - ApiKeyAuth: []
+      responses:
+        "200":
+          description: Correlation list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  correlations:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Correlation"
+
+  /api/v1/market-seeds:
+    get:
+      summary: Prediction market seeds
+      description: Suggested prediction market questions generated from current data.
+      security:
+        - ApiKeyAuth: []
+      responses:
+        "200":
+          description: Market seed suggestions
+          content:
+            application/json:
+              schema:
+                type: object
+
+  /api/v1/query:
+    post:
+      summary: Query historical data
+      description: Query historical sweep data with optional source and limit filters.
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/QueryRequest"
+      responses:
+        "200":
+          description: Query results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  results:
+                    type: array
+                    items:
+                      type: object
+
+  /api/v1/resolve-check:
+    post:
+      summary: Condition resolution check
+      description: Check if a condition is met in the current data. Useful for prediction market resolution.
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ResolveCheckRequest"
+      responses:
+        "200":
+          description: Resolution result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResolveCheckResponse"

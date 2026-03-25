@@ -1,48 +1,34 @@
-# Dependencies
-node_modules/
-
-# Environment (contains API keys)
-.env
-apis/.env
+# Rust
+/target/
+*.exe
+*.pdb
 
 # Runtime data
-runs/
-output/
+/runs/
+*.db
 
-# IDE / Editor
-.vscode/
+# Environment
+.env
+.env.local
+.env*.local
+
+# IDE
 .idea/
+.vscode/
 *.swp
 *.swo
-*~
 
-# OS files
+# OS
 .DS_Store
 Thumbs.db
-desktop.ini
 
-# Claude Code
-.claude/
-CLAUDE.md
-AGENTS.md
+# NewsPredict
+newspredict/node_modules/
+newspredict/.next/
+newspredict/out/
+newspredict/artifacts/
+newspredict/cache/
+newspredict/typechain-types/
 
-
-# Playwright
-.playwright-cli/
-
-# Logs
-*.log
-npm-debug.log*
-
-
-# Package lock (optional — remove this line if you want deterministic installs)
-# package-lock.json
-
-# Backup files
-*.bak
-
-# Local maintainer notes
-MAINTAINER_DECISIONS.local.md
-
-# Local deploy config
-dashboard/public/vercel.json
+# OMC state
+.omc/

@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://chaos.dev/schemas/sweep.json",
+  "title": "ChaosSweep",
+  "description": "Schema for a CHAOS intelligence sweep result.",
+  "type": "object",
+  "properties": {
+    "chaos": {
+      "type": "object",
+      "properties": {
+        "timestamp": { "type": "string", "format": "date-time" },
+        "sourcesQueried": { "type": "integer" },
+        "sourcesOk": { "type": "integer" },
+        "sourcesFailed": { "type": "integer" },
+        "totalDurationMs": { "type": "integer" }
+      },
+      "required": ["timestamp", "sourcesQueried", "sourcesOk", "sourcesFailed", "totalDurationMs"]
+    },
+    "sources": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "correlations": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/Correlation" }
+    },
+    "errors": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string" },
+          "error": { "type": "string" }
+        }
+      }
+    }
+  },
+  "required": ["chaos", "sources"],
+  "$defs": {
+    "Correlation": {
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "severity": { "type": "string", "enum": ["low", "medium", "high", "critical"] },
+        "description": { "type": "string" }
+      },
+      "required": ["name", "severity"]
+    }
+  }
+}

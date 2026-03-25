@@ -12,7 +12,7 @@ Describe the feature or source you want added.
 
 ## Why This Matters
 
-What problem does this solve for Crucix users?
+What problem does this solve for CHAOS users?
 
 ## Scope
 

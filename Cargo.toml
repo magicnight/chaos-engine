@@ -1,0 +1,33 @@
+[package]
+name = "chaos"
+version = "0.1.0"
+edition = "2021"
+description = "C.H.A.O.S. — Connected Human-Augmented OSINT Suite. 44 sources, single binary, zero cloud"
+license = "AGPL-3.0-only"
+
+[[bin]]
+name = "chaos"
+path = "src/main.rs"
+
+[dependencies]
+tokio = { version = "1", features = ["full"] }
+reqwest = { version = "0.12", features = ["json", "rustls-tls"], default-features = false }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+clap = { version = "4", features = ["derive"] }
+thiserror = "2"
+anyhow = "1"
+chrono = { version = "0.4", features = ["serde"] }
+urlencoding = "2"
+async-trait = "0.1"
+futures = "0.3"
+rusqlite = { version = "0.32", features = ["bundled"] }
+axum = { version = "0.8", features = ["ws"] }
+tower-http = { version = "0.6", features = ["cors"] }
+tokio-stream = { version = "0.1", features = ["sync"] }
+sha2 = "0.10"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["json", "env-filter"] }
+
+[dev-dependencies]
+tempfile = "3"

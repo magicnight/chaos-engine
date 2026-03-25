@@ -1,10 +1,14 @@
 services:
-  crucix:
+  chaos:
     build: .
     ports:
-      - "${PORT:-3117}:${PORT:-3117}"
-    env_file:
-      - .env
+      - "3117:3117"
     volumes:
-      - ./runs:/app/runs
+      - ./runs:/data/runs
+    env_file: .env
+    working_dir: /data
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3117/api/v1/health"]
+      interval: 60s
+      timeout: 10s

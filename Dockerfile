@@ -1,19 +1,17 @@
-FROM node:22-alpine
-
+FROM rust:1.82-alpine AS builder
+RUN apk add --no-cache musl-dev openssl-dev pkgconf
 WORKDIR /app
+COPY Cargo.toml Cargo.lock ./
+COPY src/ src/
+COPY static/ static/
+RUN cargo build --release
 
-# Copy package files first for better layer caching
-COPY package*.json ./
-RUN npm install --production
-
-# Copy source
-COPY . .
-
-# Default port (override with -e PORT=xxxx)
+FROM alpine:3.20
+RUN apk add --no-cache ca-certificates && mkdir -p /data/runs
+COPY --from=builder /app/target/release/chaos /usr/local/bin/
+VOLUME /data/runs
+ENV DATABASE_PATH=/data/runs/chaos.db
 EXPOSE 3117
-
-# Health check
-HEALTHCHECK --interval=60s --timeout=10s --retries=3 \
-  CMD wget -qO- http://localhost:3117/api/health || exit 1
-
-CMD ["node", "server.mjs"]
+HEALTHCHECK --interval=60s CMD wget -q --spider http://localhost:3117/api/v1/health || exit 1
+ENTRYPOINT ["chaos"]
+CMD ["serve", "--port", "3117"]
