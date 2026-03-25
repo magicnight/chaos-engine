@@ -1018,7 +1018,103 @@ async fn market_seeds_handler(
         }
     }
 
-    Json(json!({ "seeds": seeds })).into_response()
+    // Add Chinese translations if configured
+    let lang = &state.config.sweep_lang;
+    if lang == "zh" {
+        for seed in seeds.iter_mut() {
+            if let Some(q) = seed.get("question").and_then(|q| q.as_str()).map(String::from) {
+                seed["question_original"] = json!(q);
+                seed["question"] = json!(translate_seed_question(&q));
+            }
+        }
+    }
+
+    Json(json!({ "seeds": seeds, "lang": lang })).into_response()
+}
+
+/// Translate common seed question patterns to Chinese.
+fn translate_seed_question(q: &str) -> String {
+    let q_lower = q.to_lowercase();
+
+    // Pattern matching for common seed question structures
+    if q_lower.contains("vix") && q_lower.contains("drop below") {
+        return q.replace("Will VIX drop below", "VIX 会跌破").replace("this week?", "吗？（本周）");
+    }
+    if q_lower.contains("vix") && q_lower.contains("exceed") {
+        return q.replace("Will VIX exceed", "VIX 会超过").replace("this week?", "吗？（本周）");
+    }
+    if q_lower.contains("btc") && q_lower.contains("exceed") {
+        return q.replace("Will BTC exceed", "BTC 会超过").replace("this week?", "吗？（本周）");
+    }
+    if q_lower.contains("wti") && q_lower.contains("drop below") {
+        return q.replace("Will WTI crude drop below", "WTI 原油会跌破").replace("this week?", "吗？（本周）");
+    }
+    if q_lower.contains("wti") && q_lower.contains("exceed") {
+        return q.replace("Will WTI crude exceed", "WTI 原油会超过").replace("this week?", "吗？（本周）");
+    }
+    if q_lower.contains("gold") && q_lower.contains("exceed") {
+        return q.replace("Will gold exceed", "黄金会超过").replace("this week?", "吗？（本周）");
+    }
+    if q_lower.contains("earthquake") || q_lower.contains("m6.0") || q_lower.contains("m5.0") {
+        return q.replace("Will a", "未来 7 天会发生").replace("earthquake occur in the next 7 days?", "地震吗？");
+    }
+    if q_lower.contains("acled") && q_lower.contains("conflict") {
+        return q.replace("Will ACLED conflict events exceed", "ACLED 冲突事件下周会超过").replace("next week?", "吗？");
+    }
+    if q_lower.contains("hy credit spread") {
+        return q.replace("Will HY credit spread exceed", "高收益信用利差本月会超过").replace("this month?", "吗？");
+    }
+    if q_lower.contains("who") && q_lower.contains("outbreak") {
+        return q.replace("Will WHO issue more than", "WHO 下周会发布超过").replace("outbreak alerts next week?", "个疫情警报吗？");
+    }
+    if q_lower.contains("nasa") && q_lower.contains("near-earth") {
+        return q.replace("Will NASA track more than", "NASA 下周会追踪超过").replace("near-Earth objects next week?", "个近地天体吗？");
+    }
+    if q_lower.contains("cisa") && q_lower.contains("kev") {
+        return q.replace("Will CISA add more than", "CISA 下周会新增超过").replace("new KEV entries next week?", "个 KEV 条目吗？");
+    }
+    if q_lower.contains("s&p 500") || q_lower.contains("spy") {
+        if q_lower.contains("gain") {
+            return q.replace("Will S&P 500 gain more than 1% this week?", "标普 500 本周会上涨超过 1% 吗？");
+        }
+        if q_lower.contains("lose") {
+            return q.replace("Will S&P 500 lose more than 1% this week?", "标普 500 本周会下跌超过 1% 吗？");
+        }
+    }
+    if q_lower.contains("weaken") && q_lower.contains("usd") {
+        return q.replace("weaken more than 2% vs USD this month?", "本月会对美元贬值超过 2% 吗？")
+            .replace("Will", "");
+    }
+    if q_lower.contains("global conflict news") {
+        return "全球冲突新闻量下周会增加吗？".to_string();
+    }
+    if q_lower.contains("tech platform") && q_lower.contains("outage") {
+        return "主要科技平台本周会出现超过 1 小时的故障吗？".to_string();
+    }
+    if q_lower.contains("stock markets") && q_lower.contains("higher") {
+        return "全球股市本周收涨吗？".to_string();
+    }
+    if q_lower.contains("sanctions") && q_lower.contains("announce") {
+        return "本周有国家宣布新经济制裁吗？".to_string();
+    }
+    if q_lower.contains("cybersecurity") {
+        return "本周会披露影响超百万用户的网络安全事件吗？".to_string();
+    }
+    if q_lower.contains("crude oil") && q_lower.contains("5%") {
+        return "原油价格本周变动会超过 5% 吗？".to_string();
+    }
+    if q_lower.contains("disease outbreak") && q_lower.contains("who") {
+        return "WHO 本月会报告新的疾病爆发吗？".to_string();
+    }
+    if q_lower.contains("cryptocurrency") && q_lower.contains("top 10") {
+        return "本周有加密货币进入市值前 10 吗？".to_string();
+    }
+    if q_lower.contains("weather") && q_lower.contains("$1b") {
+        return "本月会有重大天气事件造成超 10 亿美元损失吗？".to_string();
+    }
+
+    // Fallback: return original
+    q.to_string()
 }
 
 /// Accept JSON filters and return matching sweep data.
