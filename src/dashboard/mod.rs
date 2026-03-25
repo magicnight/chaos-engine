@@ -847,6 +847,43 @@ async fn market_seeds_handler(
         }
     }
 
+    // LLM-generated seeds (if available, merge with rule-based seeds)
+    if let Some(ref llm) = state.llm {
+        if llm.is_configured() {
+            if let Some(sweep_data) = data.as_ref() {
+                match crate::llm::market_seeds::generate_seeds(llm.as_ref(), sweep_data, 5).await {
+                    Ok(llm_seeds) => {
+                        for s in llm_seeds {
+                            // Avoid duplicates by checking question similarity
+                            let dominated = seeds.iter().any(|existing| {
+                                existing.get("question")
+                                    .and_then(|q| q.as_str())
+                                    .map(|q| q == s.question)
+                                    .unwrap_or(false)
+                            });
+                            if !dominated {
+                                seeds.push(json!({
+                                    "id": s.id,
+                                    "question": s.question,
+                                    "category": s.category,
+                                    "options": s.options,
+                                    "resolution_criteria": s.resolution_criteria,
+                                    "resolution_source": s.resolution_source,
+                                    "confidence": s.confidence,
+                                    "context": s.context,
+                                    "suggested_end_time": s.suggested_end_time.unwrap_or_else(|| end_7d.clone()),
+                                }));
+                            }
+                        }
+                    }
+                    Err(e) => {
+                        tracing::warn!(error = %e, "LLM market seed generation failed, using rule-based only");
+                    }
+                }
+            }
+        }
+    }
+
     Json(json!({ "seeds": seeds })).into_response()
 }
 
