@@ -161,6 +161,30 @@ All sources run in parallel via `tokio::join_all` with per-source timeouts. 20+ 
 
 ---
 
+## Why Rust?
+
+The CHAOS Engine core is written entirely in Rust. For an intelligence system that must collect 46 data sources in parallel, analyze streaming data in real time, and run reliably around the clock, Rust is the only language that simultaneously delivers:
+
+| Advantage | What it means for CHAOS |
+|-----------|------------------------|
+| **Zero-cost concurrency** | `tokio` async runtime + `join_all` parallel collection across 46 sources. A single thread handles thousands of concurrent connections with no GC pauses |
+| **Memory safety without GC** | Ownership system eliminates data races and memory leaks at compile time. Runs 24/7 with zero crashes — no Go-style GC latency or Python-style memory bloat |
+| **Single binary** | `cargo build --release` produces one ~15MB static binary containing the web server, dashboard, SQLite, and all 46 source parsers. No runtime dependencies. Container image is ~30MB |
+| **C/C++ performance** | JSON parsing (serde), regex matching, and data aggregation run at C speed. CPU usage is near-zero while waiting for LLM responses |
+| **Type system as documentation** | Every data source response is strongly typed at compile time. `enum` + `match` exhaustiveness ensures no branch is missed |
+| **Cargo ecosystem** | axum (web), rusqlite (SQLite), reqwest (HTTP), tokio (async) — mature, production-grade libraries with no left-pad-style supply chain risk |
+| **Cross-platform** | Same codebase compiles to Linux / macOS / Windows / ARM. Runs on a Raspberry Pi |
+
+**Compared to alternatives:**
+- **Python**: Fast to write but slow to run. GIL limits concurrency, high memory usage, deployment requires virtual environments
+- **Go**: Good concurrency but unpredictable GC, weak generics, verbose error handling
+- **Node.js**: Single-threaded event loop works for I/O but blocks on CPU-intensive analysis, weak type safety
+- **Java/C#**: Slow JVM/CLR startup, heavy memory footprint, poor fit for edge devices and lightweight containers
+
+Rust's trade-off is a steeper learning curve and longer compile times, but for an intelligence engine that must be **reliable, efficient, and run indefinitely**, the investment pays for itself.
+
+---
+
 ## Architecture
 
 ```
