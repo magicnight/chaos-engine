@@ -3,7 +3,7 @@ FROM node:22-alpine AS builder
 WORKDIR /app
 
 COPY package.json package-lock.json ./
-RUN npm ci --ignore-scripts --legacy-peer-deps
+RUN npm ci --ignore-scripts
 
 COPY src/ src/
 COPY public/ public/

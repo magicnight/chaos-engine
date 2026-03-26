@@ -29,8 +29,10 @@ newspredict/out/
 newspredict/artifacts/
 newspredict/cache/
 newspredict/typechain-types/
+newspredict/tsconfig.tsbuildinfo
 
 # OMC state
 .omc/
 
-.claude/.superpowers/
+# Brainstorm sessions
+.superpowers/
