@@ -37,35 +37,41 @@ export async function GET(request: NextRequest) {
     const seeds = (data as { seeds: RawSeed[] }).seeds || [];
 
     const created: string[] = [];
+    const errors: string[] = [];
 
     for (const seed of seeds) {
-      const [existing] = await db
-        .select({ id: markets.id })
-        .from(markets)
-        .where(eq(markets.crucixSeedId, seed.id));
+      try {
+        const [existing] = await db
+          .select({ id: markets.id })
+          .from(markets)
+          .where(eq(markets.crucixSeedId, seed.id));
 
-      if (existing) continue;
+        if (existing) continue;
 
-      const [market] = await db
-        .insert(markets)
-        .values({
-          question: seed.question,
-          description: seed.description || null,
-          category: seed.category,
-          closeAt: parseCloseAt(seed),
-          resolutionCriteria: seed.resolutionCriteria || seed.resolution_criteria || seed.question,
-          resolutionSource: seed.resolutionSource || seed.resolution_source || null,
-          crucixSeedId: seed.id,
-          creatorType: 'system',
-          tags: seed.tags || null,
-          relatedSources: seed.relatedSources || null,
-        })
-        .returning();
+        const [market] = await db
+          .insert(markets)
+          .values({
+            question: seed.question,
+            description: seed.description || null,
+            category: seed.category,
+            closeAt: parseCloseAt(seed),
+            resolutionCriteria: seed.resolutionCriteria || seed.resolution_criteria || seed.question,
+            resolutionSource: seed.resolutionSource || seed.resolution_source || null,
+            crucixSeedId: seed.id,
+            creatorType: 'system',
+            tags: seed.tags || null,
+            relatedSources: seed.relatedSources || null,
+          })
+          .returning();
 
-      created.push(market.id);
+        created.push(market.id);
+      } catch (e: unknown) {
+        const msg = e instanceof Error ? e.message : String(e);
+        errors.push(`${seed.id}: ${msg}`);
+      }
     }
 
-    return NextResponse.json({ created: created.length, ids: created });
+    return NextResponse.json({ created: created.length, ids: created, seedCount: seeds.length, errors });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Failed to sync market seeds';
     return NextResponse.json({ error: message }, { status: 500 });

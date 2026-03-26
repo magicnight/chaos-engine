@@ -12,7 +12,7 @@ import { T } from '@/components/i18n-text';
 
 export const dynamic = 'force-dynamic';
 
-const API_BASE = process.env.NEXTAUTH_URL || 'http://localhost:3000';
+const API_BASE = process.env.INTERNAL_URL || `http://localhost:${process.env.PORT || 3000}`;
 
 async function getMarkets(params: string) {
   try {

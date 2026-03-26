@@ -3,11 +3,11 @@ FROM node:22-alpine AS builder
 WORKDIR /app
 
 COPY package.json package-lock.json ./
-RUN npm ci --ignore-scripts
+RUN npm ci --ignore-scripts --legacy-peer-deps
 
 COPY src/ src/
 COPY public/ public/
-COPY next.config.ts tsconfig.json tailwind.config.ts postcss.config.mjs ./
+COPY next.config.ts tsconfig.json postcss.config.mjs ./
 COPY drizzle.config.ts ./
 
 ENV NEXT_TELEMETRY_DISABLED=1
