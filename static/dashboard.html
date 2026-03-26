@@ -378,7 +378,11 @@ var I18N = {
     networkIntel: 'NETWORK INTEL', transportAir: 'TRANSPORT & AIRSPACE', trendsInnovation: 'TRENDS & INNOVATION',
     neoTracker: 'NEO TRACKER',
     catSituational: 'Situational', catSystem: 'System', catFinancial: 'Financial', catSecurity: 'Security',
-    catNews: 'News', catNatural: 'Natural', catCyber: 'Cyber', catSpace: 'Space', catAI: 'AI',
+    catNews: 'News', catNatural: 'Natural', catCyber: 'Cyber', catSpace: 'Space', catAI: 'AI', catLive: 'Live TV',
+    liveBloomberg: 'Bloomberg TV', liveAljazeera: 'Al Jazeera', liveFrance24: 'France 24', liveDw: 'DW News',
+    liveEuronews: 'Euronews', liveSkynews: 'Sky News', liveCnbc: 'CNBC', liveNhk: 'NHK World',
+    liveCctv4: 'CCTV-4', liveTvbs: 'TVBS News', liveCti: 'CTi News', liveEbc: 'EBC News',
+    livePhoenix: 'Phoenix TV', liveCgtn: 'CGTN', liveCctvnews: 'CCTV News',
     noData: 'NO DATA', updated: 'Updated', settings: 'Dashboard Settings', resetLayout: 'Reset Layout',
     toggleVisuals: 'Toggle Visuals', close: 'Close', sweeping: 'SWEEPING...',
   },
@@ -392,7 +396,11 @@ var I18N = {
     networkIntel: '网络情报', transportAir: '运输与空域', trendsInnovation: '趋势与创新',
     neoTracker: '近地天体追踪',
     catSituational: '态势', catSystem: '系统', catFinancial: '金融', catSecurity: '安全',
-    catNews: '新闻', catNatural: '自然', catCyber: '网络', catSpace: '太空', catAI: 'AI',
+    catNews: '新闻', catNatural: '自然', catCyber: '网络', catSpace: '太空', catAI: 'AI', catLive: '直播频道',
+    liveBloomberg: 'Bloomberg 电视', liveAljazeera: '半岛电视台', liveFrance24: '法国24', liveDw: '德国之声',
+    liveEuronews: '欧洲新闻', liveSkynews: '天空新闻', liveCnbc: 'CNBC 财经', liveNhk: 'NHK 国际',
+    liveCctv4: '央视中文国际', liveTvbs: 'TVBS 新闻台', liveCti: '中天新闻', liveEbc: '东森新闻',
+    livePhoenix: '凤凰卫视', liveCgtn: 'CGTN', liveCctvnews: '央视新闻',
     noData: '暂无数据', updated: '已更新', settings: '仪表板设置', resetLayout: '重置布局',
     toggleVisuals: '切换视觉效果', close: '关闭', sweeping: '扫描中...',
   }
@@ -424,7 +432,22 @@ var PANELS = [
   { id: 'network',    title: L.networkIntel,       icon: '\uD83C\uDF10', category: L.catCyber,      w: 4, h: 2, x: 0, y: 21 },
   { id: 'transport',  title: L.transportAir,       icon: '\u2708',       category: L.catSituational, w: 4, h: 3, x: 4, y: 21 },
   { id: 'trends',     title: L.trendsInnovation,   icon: '\uD83D\uDCC8', category: L.catNews,        w: 4, h: 3, x: 8, y: 21 },
-  { id: 'asteroids',  title: L.neoTracker,         icon: '\u2604',       category: L.catSpace,       w: 4, h: 2, x: 0, y: 24 }
+  { id: 'asteroids',  title: L.neoTracker,         icon: '\u2604',       category: L.catSpace,       w: 4, h: 2, x: 0, y: 24 },
+  { id: 'live-bloomberg', title: L.liveBloomberg, icon: '\uD83D\uDCFA', category: L.catLive, w: 4, h: 4 },
+  { id: 'live-aljazeera', title: L.liveAljazeera, icon: '\uD83D\uDCFA', category: L.catLive, w: 4, h: 4 },
+  { id: 'live-france24',  title: L.liveFrance24,  icon: '\uD83D\uDCFA', category: L.catLive, w: 4, h: 4 },
+  { id: 'live-dw',        title: L.liveDw,        icon: '\uD83D\uDCFA', category: L.catLive, w: 4, h: 4 },
+  { id: 'live-euronews',  title: L.liveEuronews,  icon: '\uD83D\uDCFA', category: L.catLive, w: 4, h: 4 },
+  { id: 'live-skynews',   title: L.liveSkynews,   icon: '\uD83D\uDCFA', category: L.catLive, w: 4, h: 4 },
+  { id: 'live-cnbc',      title: L.liveCnbc,      icon: '\uD83D\uDCFA', category: L.catLive, w: 4, h: 4 },
+  { id: 'live-nhk',       title: L.liveNhk,       icon: '\uD83D\uDCFA', category: L.catLive, w: 4, h: 4 },
+  { id: 'live-cctv4',     title: L.liveCctv4,     icon: '\uD83D\uDCFA', category: L.catLive, w: 4, h: 4 },
+  { id: 'live-tvbs',      title: L.liveTvbs,      icon: '\uD83D\uDCFA', category: L.catLive, w: 4, h: 4 },
+  { id: 'live-cti',       title: L.liveCti,       icon: '\uD83D\uDCFA', category: L.catLive, w: 4, h: 4 },
+  { id: 'live-ebc',       title: L.liveEbc,       icon: '\uD83D\uDCFA', category: L.catLive, w: 4, h: 4 },
+  { id: 'live-phoenix',   title: L.livePhoenix,   icon: '\uD83D\uDCFA', category: L.catLive, w: 4, h: 4 },
+  { id: 'live-cgtn',      title: L.liveCgtn,      icon: '\uD83D\uDCFA', category: L.catLive, w: 4, h: 4 },
+  { id: 'live-cctvnews',  title: L.liveCctvnews,  icon: '\uD83D\uDCFA', category: L.catLive, w: 4, h: 4 }
 ];
 
 var regionPOV = {
@@ -2077,7 +2100,51 @@ function togglePanel(id, show) {
   saveLayout();
 }
 
+/* ================================================================
+   LIVE VIDEO CHANNELS
+   ================================================================ */
+var LIVE_CHANNELS = {
+  'live-bloomberg':  { ytId: 'dp8PhLsUcFE' },
+  'live-aljazeera':  { ytId: 'gCNeDWCI0vo' },
+  'live-france24':   { ytId: 'Ap-oi6dB5Zk' },
+  'live-dw':         { ytId: 'GE_SfNVNyqk' },
+  'live-euronews':   { ytId: 'pykpO5kQJ98' },
+  'live-skynews':    { ytId: '9Auq9mYxFEE' },
+  'live-cnbc':       { ytId: '9NyxcM1G5ho' },
+  'live-nhk':        { ytId: 'f0lYkdA-Jho' },
+  'live-cctv4':      { ytId: 'vp4Cnm76Hxk' },
+  'live-tvbs':       { ytId: '5tRMiNxBKpg' },
+  'live-cti':        { ytId: 'wUHTLgSB1wQ' },
+  'live-ebc':        { ytId: 'MzuU4gEliEo' },
+  'live-phoenix':    { ytId: 'fHBIael6FHo' },
+  'live-cgtn':       { ytId: 'gBSEDYQg4JQ' },
+  'live-cctvnews':   { ytId: 'LPifSrGDGNc' }
+};
+
+function updateVideoPanel(panelId) {
+  var el = document.getElementById('panel-' + panelId);
+  if (!el) return;
+  var ch = LIVE_CHANNELS[panelId];
+  if (!ch) return;
+  if (el.querySelector('iframe')) return;
+  var container = document.createElement('div');
+  container.style.cssText = 'position:relative;width:100%;height:100%;min-height:200px;';
+  var iframe = document.createElement('iframe');
+  iframe.src = 'https://www.youtube.com/embed/' + ch.ytId + '?autoplay=1&mute=1&controls=1&rel=0';
+  iframe.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;border:none;border-radius:4px;';
+  iframe.loading = 'lazy';
+  iframe.allow = 'autoplay; encrypted-media; picture-in-picture';
+  iframe.allowFullscreen = true;
+  container.appendChild(iframe);
+  var badge = document.createElement('span');
+  badge.style.cssText = 'position:absolute;top:4px;right:4px;background:rgba(239,68,68,0.9);color:white;font-size:9px;font-weight:bold;padding:2px 6px;border-radius:4px;';
+  badge.textContent = 'LIVE';
+  container.appendChild(badge);
+  el.appendChild(container);
+}
+
 function updatePanelById(id) {
+  if (id.indexOf('live-') === 0) { updateVideoPanel(id); return; }
   var fnMap = {
     sources: updateSources, markets: updateMarkets, risk: updateRiskGauges,
     energy: updateEnergy, news: updateNewsTicker, osint: updateOsint,
@@ -2234,7 +2301,17 @@ function initGridStack() {
 
   bindPanelControls();
 
-  loadLayout();
+  var hadLayout = loadLayout();
+
+  // Hide live video panels by default (user enables via settings)
+  if (!hadLayout) {
+    PANELS.forEach(function(p) {
+      if (p.id.indexOf('live-') === 0) {
+        var el = document.querySelector('[gs-id="' + p.id + '"]');
+        if (el) grid.removeWidget(el);
+      }
+    });
+  }
 
   grid.on('change', function() { saveLayout(); });
 
