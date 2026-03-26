@@ -1,34 +1,46 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import useSWR from 'swr';
 import { CategoryPills } from '@/components/layout/category-pills';
 import { NewsPredictionCard } from '@/components/cards/news-prediction-card';
 import { useLocale } from '@/lib/i18n/context';
+import { getCategoryImage } from '@/lib/category-image';
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
+
+function useDebounce(value: string, delay: number) {
+  const [debounced, setDebounced] = useState(value);
+  useEffect(() => {
+    const timer = setTimeout(() => setDebounced(value), delay);
+    return () => clearTimeout(timer);
+  }, [value, delay]);
+  return debounced;
+}
 
 export default function ExplorePage() {
   const [query, setQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const { t } = useLocale();
+  const debouncedQuery = useDebounce(query, 300);
 
-  const { data: markets, isLoading } = useSWR('/api/markets?status=open&limit=50', fetcher, {
+  const params = new URLSearchParams({ status: 'open', limit: '50' });
+  if (debouncedQuery.trim()) params.set('q', debouncedQuery.trim());
+  if (selectedCategory !== 'All') params.set('category', selectedCategory);
+
+  const { data: markets, isLoading } = useSWR(`/api/markets?${params}`, fetcher, {
     refreshInterval: 30000,
     fallbackData: [],
   });
 
-  const filtered = (Array.isArray(markets) ? markets : []).filter((m: any) => {
-    const matchesQuery = !query || m.question?.toLowerCase().includes(query.toLowerCase());
-    const matchesCategory = selectedCategory === 'All' || m.category === selectedCategory;
-    return matchesQuery && matchesCategory;
-  }).map((m: any) => ({
+  const items = (Array.isArray(markets) ? markets : []).map((m: any) => ({
     title: m.question || '',
     category: m.category || 'General',
     yesPercent: Math.round((m.yesPrice || 0.5) * 100),
     noPercent: Math.round((m.noPrice || 0.5) * 100),
     isHot: m.volume > 100,
     href: `/markets/${m.id}`,
+    imageUrl: m.imageUrl || getCategoryImage(m.category || 'other', m.id),
   }));
 
   return (
@@ -48,10 +60,10 @@ export default function ExplorePage() {
         {isLoading && (
           <p className="text-sm text-[var(--muted)] text-center py-8">{t('explore.loadingMarkets')}</p>
         )}
-        {!isLoading && filtered.length === 0 && (
+        {!isLoading && items.length === 0 && (
           <p className="text-sm text-[var(--muted)] text-center py-8">{t('explore.noMarketsFound')}</p>
         )}
-        {filtered.map((m: any) => (
+        {items.map((m: any) => (
           <NewsPredictionCard key={m.title} {...m} />
         ))}
       </div>

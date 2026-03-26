@@ -107,6 +107,14 @@ export function OrderPanel({ marketId, yesPrice, noPrice, onchainMarketId, onTra
 
   if (buySuccess) {
     refetchBalance();
+    // Save txHash to backend
+    if (buyHash) {
+      fetch('/api/trades', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tradeId: marketId, txHash: buyHash }),
+      }).catch(() => {});
+    }
   }
 
   const isOnchain = mode === 'onchain';

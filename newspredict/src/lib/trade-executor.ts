@@ -2,6 +2,7 @@ import { db } from './db';
 import { users, markets, trades, positions } from './db/schema';
 import { eq, and, sql } from 'drizzle-orm';
 import { calculateCost, getPrice, sharesForCost } from './market-engine';
+import { sendNotification } from './notify';
 
 export interface TradeResult {
   success: boolean;
@@ -140,6 +141,14 @@ export async function executeTrade(
         avgPrice: (cost / shares).toFixed(4),
       });
     }
+
+    sendNotification(
+      userId,
+      'trade_confirmed',
+      `Trade confirmed: ${side} on market`,
+      `${shares.toFixed(1)} shares @ $${(cost / shares).toFixed(2)}`,
+      `/markets/${marketId}`
+    );
 
     return { success: true, tradeId: trade.id, shares, cost, newPrice };
   } catch (err: unknown) {

@@ -92,6 +92,17 @@ export const comments = pgTable('comments', {
   check('comment_content_length', sql`length(${t.content}) > 0 AND length(${t.content}) <= 2000`),
 ]);
 
+export const notifications = pgTable('notifications', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  userId: uuid('user_id').notNull().references(() => users.id),
+  type: text('type').notNull(), // 'market_resolved' | 'trade_confirmed' | 'new_follower'
+  title: text('title').notNull(),
+  body: text('body'),
+  link: text('link'),
+  read: integer('read').default(0).notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
 export const follows = pgTable('follows', {
   followerId: uuid('follower_id').notNull().references(() => users.id),
   followingId: uuid('following_id').notNull().references(() => users.id),

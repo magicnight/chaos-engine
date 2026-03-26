@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { markets } from '@/lib/db/schema';
-import { eq, desc, and } from 'drizzle-orm';
+import { eq, desc, and, ilike, sql } from 'drizzle-orm';
 import { getPrice } from '@/lib/market-engine';
 import { auth } from '@/lib/auth';
 
@@ -29,9 +29,14 @@ export async function GET(request: NextRequest) {
       });
     }
 
+    const q = searchParams.get('q');
+
     const conditions = [eq(markets.status, status)];
     if (category && category !== 'All') {
       conditions.push(eq(markets.category, category));
+    }
+    if (q && q.trim()) {
+      conditions.push(ilike(markets.question, `%${q.trim()}%`));
     }
 
     const rows = await db

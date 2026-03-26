@@ -153,7 +153,9 @@
     "resolutionSourcePlaceholder": "e.g., CoinGecko, Reuters, NOAA",
     "required": "Please fill in all required fields",
     "creating": "Creating...",
-    "createMarket": "Create Market"
+    "createMarket": "Create Market",
+    "imageUrl": "Image URL",
+    "imageUrlPlaceholder": "https://example.com/image.jpg"
   },
   "summary": {
     "pnl": "P&L",
@@ -190,6 +192,14 @@
     "submit": "Post",
     "signInToComment": "Sign in to comment",
     "noComments": "No comments yet"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "empty": "No notifications yet",
+    "markAllRead": "Mark all read",
+    "tradeConfirmed": "Trade confirmed",
+    "marketResolved": "Market resolved",
+    "newFollower": "New follower"
   },
   "locale": {
     "en": "EN",

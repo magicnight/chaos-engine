@@ -153,7 +153,9 @@
     "resolutionSourcePlaceholder": "例：CoinGecko, Reuters, NOAA",
     "required": "请填写所有必填字段",
     "creating": "创建中...",
-    "createMarket": "创建市场"
+    "createMarket": "创建市场",
+    "imageUrl": "图片链接",
+    "imageUrlPlaceholder": "https://example.com/image.jpg"
   },
   "summary": {
     "pnl": "盈亏",
@@ -190,6 +192,14 @@
     "submit": "发表",
     "signInToComment": "登录后评论",
     "noComments": "暂无评论"
+  },
+  "notifications": {
+    "title": "通知",
+    "empty": "暂无通知",
+    "markAllRead": "全部已读",
+    "tradeConfirmed": "交易已确认",
+    "marketResolved": "市场已结算",
+    "newFollower": "新粉丝"
   },
   "locale": {
     "en": "EN",

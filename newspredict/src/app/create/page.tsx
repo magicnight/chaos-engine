@@ -13,6 +13,7 @@ export default function CreateMarketPage() {
   const [resolutionCriteria, setResolutionCriteria] = useState('');
   const [resolutionSource, setResolutionSource] = useState('');
   const [description, setDescription] = useState('');
+  const [imageUrl, setImageUrl] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -50,6 +51,7 @@ export default function CreateMarketPage() {
           resolutionCriteria,
           resolutionSource: resolutionSource || undefined,
           description: description || undefined,
+          imageUrl: imageUrl || undefined,
         }),
       });
 
@@ -145,6 +147,17 @@ export default function CreateMarketPage() {
             value={resolutionSource}
             onChange={(e) => setResolutionSource(e.target.value)}
             placeholder={t('create.resolutionSourcePlaceholder')}
+            className="w-full rounded-xl bg-[var(--card)] border border-[var(--border)] px-4 py-2.5 text-sm text-[var(--foreground)] placeholder-[var(--muted)] outline-none focus:border-[var(--accent)] transition-colors"
+          />
+        </div>
+
+        <div>
+          <label className="text-xs text-[var(--muted)] mb-1 block">{t('create.imageUrl')}</label>
+          <input
+            type="url"
+            value={imageUrl}
+            onChange={(e) => setImageUrl(e.target.value)}
+            placeholder={t('create.imageUrlPlaceholder')}
             className="w-full rounded-xl bg-[var(--card)] border border-[var(--border)] px-4 py-2.5 text-sm text-[var(--foreground)] placeholder-[var(--muted)] outline-none focus:border-[var(--accent)] transition-colors"
           />
         </div>

@@ -3,6 +3,7 @@ import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { follows, users } from '@/lib/db/schema';
 import { and, eq, sql } from 'drizzle-orm';
+import { sendNotification } from '@/lib/notify';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -43,6 +44,13 @@ export async function POST(request: NextRequest) {
         .insert(follows)
         .values({ followerId: session.user.id, followingId: targetUserId })
         .onConflictDoNothing();
+      sendNotification(
+        targetUserId,
+        'new_follower',
+        'New follower',
+        `${session.user.name || 'Someone'} started following you`,
+        `/profile/${session.user.id}`
+      );
     } else {
       await db
         .delete(follows)
