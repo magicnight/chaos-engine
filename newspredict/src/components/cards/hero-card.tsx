@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useLocale } from '@/lib/i18n/context';
+import { CategoryIcon } from '@/components/ui/category-icon';
 
 interface HeroCardProps {
   title: string;
@@ -48,7 +49,10 @@ export function HeroCard({
                 {t('common.live')}
               </span>
             )}
-            <span className="badge badge-new">{category}</span>
+            <span className="badge badge-new flex items-center gap-1">
+              <CategoryIcon category={category} size="sm" />
+              {category}
+            </span>
           </div>
           <h3 className="text-base font-bold leading-tight line-clamp-2">{title}</h3>
         </div>

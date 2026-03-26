@@ -83,20 +83,28 @@ export default function PortfolioPage() {
       />
 
       <div className="px-4 py-2">
-        <div className="flex items-center justify-between rounded-xl bg-[var(--card)] p-4">
+        <div className="flex items-center justify-between rounded-xl bg-[var(--card)] p-5 border border-[var(--border-subtle)]">
           <div>
-            <p className="text-xs text-[var(--muted)]">{t('portfolio.balance')}</p>
-            <p className="text-xl font-bold">${data.balance.toFixed(2)}</p>
+            <p className="text-[10px] text-[var(--muted)] uppercase tracking-wide mb-1">{t('portfolio.balance')}</p>
+            <p className="text-2xl font-bold font-mono">${data.balance.toFixed(2)}</p>
           </div>
           <div className="text-right">
-            <p className="text-xs text-[var(--muted)]">{t('portfolio.unrealizedPnl')}</p>
-            <p
-              className={`text-xl font-bold ${
-                data.totalPnl >= 0 ? 'text-[var(--success)]' : 'text-[var(--danger)]'
-              }`}
-            >
-              {data.totalPnl >= 0 ? '+' : ''}${data.totalPnl.toFixed(2)}
-            </p>
+            <p className="text-[10px] text-[var(--muted)] uppercase tracking-wide mb-1">{t('portfolio.unrealizedPnl')}</p>
+            <div className="flex items-center justify-end gap-1.5">
+              <svg className={`w-4 h-4 ${data.totalPnl >= 0 ? 'text-[var(--success)]' : 'text-[var(--danger)]'}`} viewBox="0 0 12 12" fill="currentColor">
+                {data.totalPnl >= 0
+                  ? <path d="M6 2L10 8H2L6 2Z" />
+                  : <path d="M6 10L2 4H10L6 10Z" />
+                }
+              </svg>
+              <p
+                className={`text-2xl font-bold font-mono ${
+                  data.totalPnl >= 0 ? 'text-[var(--success)]' : 'text-[var(--danger)]'
+                }`}
+              >
+                {data.totalPnl >= 0 ? '+' : ''}${data.totalPnl.toFixed(2)}
+              </p>
+            </div>
           </div>
         </div>
       </div>

@@ -4,6 +4,7 @@ import { markets } from '@/lib/db/schema';
 import { eq, desc } from 'drizzle-orm';
 import { getPrice } from '@/lib/market-engine';
 import { T } from '@/components/i18n-text';
+import { getCategoryImage } from '@/lib/category-image';
 
 export const dynamic = 'force-dynamic';
 
@@ -58,9 +59,7 @@ export default async function MarketsPage() {
               <div
                 className="w-[72px] h-[72px] rounded-lg shrink-0"
                 style={{
-                  background: m.imageUrl
-                    ? `url(${m.imageUrl}) center/cover`
-                    : 'linear-gradient(135deg, #1a2332, #0b1220)',
+                  background: `url(${m.imageUrl || getCategoryImage(m.category, m.id)}) center/cover`,
                 }}
               />
               <div className="flex-1 min-w-0">

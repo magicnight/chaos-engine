@@ -1,0 +1,82 @@
+# CHAOS Engine + NewsPredict — Production
+# Ports: 80 (HTTP), 443 (HTTPS with auto Let's Encrypt)
+# Usage: Use deploy.sh or manually: docker compose -f docker-compose.prod.yml up -d
+
+services:
+  caddy:
+    image: caddy:2-alpine
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - chaos
+      - newspredict
+    restart: unless-stopped
+
+  chaos:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - chaos_data:/data/runs
+    env_file: .env
+    environment:
+      - DATABASE_PATH=/data/runs/chaos.db
+    command: ["serve", "--port", "3117", "--public", "--api-key", "${CHAOS_API_KEY:-chaos-internal-key}"]
+    expose:
+      - "3117"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3117/api/v1/health"]
+      interval: 60s
+      timeout: 10s
+
+  newspredict:
+    build:
+      context: ./newspredict
+      dockerfile: Dockerfile
+    env_file: .env
+    environment:
+      - CHAOS_API_URL=http://chaos:3117
+      - CHAOS_API_KEY=${CHAOS_API_KEY:-chaos-internal-key}
+      - DATABASE_URL=postgresql://chaos:${POSTGRES_PASSWORD}@postgres:5432/newspredict
+      - NEXTAUTH_URL=${NEXTAUTH_URL}
+      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
+      - CRON_SECRET=${CRON_SECRET}
+      - AUTH_TRUST_HOST=true
+    expose:
+      - "3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      chaos:
+        condition: service_healthy
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: chaos
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: newspredict
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    expose:
+      - "5432"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U chaos -d newspredict"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  caddy_data:
+  caddy_config:
+  chaos_data:
+  pg_data:

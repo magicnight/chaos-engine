@@ -9,9 +9,10 @@ export function DonutGauge({ yesPercent, size = 80 }: DonutGaugeProps) {
   const circumference = 2 * Math.PI * r;
   const yesLen = (yesPercent / 100) * circumference;
   const noLen = circumference - yesLen;
+  const glowColor = yesPercent >= 50 ? 'var(--success)' : 'var(--danger)';
 
   return (
-    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ filter: `drop-shadow(0 0 6px ${glowColor}40)` }}>
       <circle
         cx={c}
         cy={c}
@@ -23,6 +24,8 @@ export function DonutGauge({ yesPercent, size = 80 }: DonutGaugeProps) {
         strokeDashoffset={circumference / 4}
         strokeLinecap="round"
         transform={`rotate(-90 ${c} ${c})`}
+        className="animate-donut-draw"
+        style={{ strokeDashoffset: circumference / 4 }}
       />
       <circle
         cx={c}
@@ -35,6 +38,8 @@ export function DonutGauge({ yesPercent, size = 80 }: DonutGaugeProps) {
         strokeDashoffset={circumference / 4}
         strokeLinecap="round"
         transform={`rotate(-90 ${c} ${c})`}
+        className="animate-donut-draw"
+        style={{ strokeDashoffset: circumference / 4 }}
       />
       <text
         x={c}

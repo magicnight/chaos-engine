@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { OrderPanel } from '@/components/market/order-panel';
 import { PriceChart } from '@/components/market/price-chart';
 import { MarketStats } from '@/components/market/market-stats';
@@ -63,9 +63,23 @@ export function MarketDetailClient({
   const timeAgo = useTimeAgo();
   const live = useLivePrice(marketId, { yesPrice, noPrice, volume, traderCount });
 
+  // Price flash animation
+  const prevYes = useRef(yesPrice);
+  const [flashClass, setFlashClass] = useState('');
+  useEffect(() => {
+    if (live.yesPrice !== prevYes.current) {
+      setFlashClass(live.yesPrice > prevYes.current ? 'animate-flash-green' : 'animate-flash-red');
+      prevYes.current = live.yesPrice;
+      const timer = setTimeout(() => setFlashClass(''), 600);
+      return () => clearTimeout(timer);
+    }
+  }, [live.yesPrice]);
+
   return (
     <div className="px-4 space-y-4 pb-8">
-      <PriceChart data={priceHistory} />
+      <div className={flashClass}>
+        <PriceChart data={priceHistory} />
+      </div>
 
       {status === 'open' && (
         <OrderPanel

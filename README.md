@@ -50,10 +50,19 @@ cp .env.example .env          # 编辑 API 密钥（可选）
 
 ### 容器部署（推荐）
 
-```bash
-cp .env.example .env          # 配置
-podman-compose up -d          # 或 docker compose up -d
+**Windows（Podman）：**
+```powershell
+.\scripts\dev-start.ps1              # 一键启动（自动配置 .env、数据库迁移、市场种子）
+.\scripts\dev-start.ps1 -Rebuild     # 重新构建并启动
 ```
+
+**Linux / Mac（Docker）：**
+```bash
+./scripts/dev-start.sh               # 一键启动
+./scripts/dev-start.sh --rebuild     # 重新构建并启动
+```
+
+访问 `http://localhost:8080`
 
 ---
 
@@ -182,14 +191,24 @@ podman-compose up -d          # 或 docker compose up -d
 
 ## 部署
 
-### 生产环境（Podman / Docker Compose）
+### 生产部署（Linux 服务器）
 
 全栈部署：CHAOS 引擎 + NewsPredict 预测市场 + PostgreSQL + Caddy 反向代理。
 
 ```bash
 git clone https://github.com/magicnight/chaos-engine.git && cd chaos-engine
-cp .env.example .env              # 配置（见下方）
-podman-compose up -d              # 或 docker compose up -d
+cp .env.example .env              # 配置生产值（见下方必填项）
+./scripts/deploy.sh               # 一键部署（构建、迁移、健康检查、种子）
+./scripts/deploy.sh --rebuild     # 重新构建并部署
+```
+
+**必填配置项**（`.env`）：
+```bash
+DOMAIN=chaos.yourdomain.com           # 有域名则填写，Caddy 自动 HTTPS
+NEXTAUTH_URL=https://chaos.yourdomain.com
+NEXTAUTH_SECRET=$(openssl rand -hex 32)
+CRON_SECRET=$(openssl rand -hex 16)
+POSTGRES_PASSWORD=$(openssl rand -hex 16)
 ```
 
 启动 4 个服务：
@@ -201,17 +220,16 @@ podman-compose up -d              # 或 docker compose up -d
                                └─ PostgreSQL (:5432)
 ```
 
-**有域名**（自动 HTTPS）：
-```bash
-# .env 中设置：
-DOMAIN=chaos.yourdomain.com
-# Caddy 自动申请 Let's Encrypt 证书
-```
+**无域名**（仅 HTTP）：`.env` 中 `DOMAIN` 留空 — 通过 `http://服务器IP` 访问。
 
-**无域名**（仅 HTTP）：
-```bash
-# .env 中 DOMAIN 留空 — 通过 http://服务器IP 访问
-```
+### 开发环境
+
+| 平台 | 命令 | 运行时 |
+|------|------|--------|
+| Windows | `.\scripts\dev-start.ps1` | Podman |
+| Linux / Mac | `./scripts/dev-start.sh` | Docker |
+
+开发环境使用端口 `8080`（HTTP），自动生成随机 secrets，自动运行数据库迁移。
 
 ### 仅部署 CHAOS 引擎（不含前端）
 

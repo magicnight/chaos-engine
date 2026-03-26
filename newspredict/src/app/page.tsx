@@ -9,6 +9,7 @@ import { BreakingBanner } from '@/components/cards/breaking-banner';
 import { ResolvedCard } from '@/components/cards/resolved-card';
 import { chaosClient } from '@/lib/chaos-client';
 import { T } from '@/components/i18n-text';
+import { getCategoryImage } from '@/lib/category-image';
 
 export const dynamic = 'force-dynamic';
 
@@ -76,6 +77,7 @@ export default async function HomePage() {
     noPercent: Math.round((m.noPrice || 0.5) * 100),
     isHot: m.volume > 100,
     href: `/markets/${m.id}`,
+    imageUrl: m.imageUrl || getCategoryImage(m.category || 'other', m.id),
   }));
   const quickPoll = markets[1] || markets[0] || null;
   const resolvedCard = resolved[0] || null;
@@ -103,6 +105,7 @@ export default async function HomePage() {
             noPercent={Math.round((hero.noPrice || 0.5) * 100)}
             volume={hero.volume > 0 ? `$${hero.volume}` : '$0'}
             isLive={hero.status === 'open'}
+            imageUrl={hero.imageUrl || getCategoryImage(hero.category || 'other', hero.id)}
             href={`/markets/${hero.id}`}
           />
         ) : (

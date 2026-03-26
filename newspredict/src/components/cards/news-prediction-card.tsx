@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useLocale } from '@/lib/i18n/context';
+import { CategoryIcon } from '@/components/ui/category-icon';
 
 interface NewsPredictionCardProps {
   title: string;
@@ -28,19 +29,20 @@ export function NewsPredictionCard({
   return (
     <Wrapper {...wrapperProps as any} className="flex gap-3 card p-3 animate-fade-in block">
       <div
-        className="w-[72px] h-[72px] rounded-lg shrink-0"
+        className="w-[72px] h-[72px] rounded-lg shrink-0 relative overflow-hidden"
         style={{
           background: imageUrl
             ? `url(${imageUrl}) center/cover`
             : 'linear-gradient(135deg, #1a2332, #0b1220)',
         }}
       >
-        <div className="w-full h-full rounded-lg flex items-center justify-center text-lg opacity-40">
-          {category[0]}
+        <div className="w-full h-full rounded-lg flex items-center justify-center">
+          {!imageUrl && <CategoryIcon category={category} size="lg" />}
         </div>
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1.5 mb-0.5">
+          <CategoryIcon category={category} size="sm" />
           <span className="text-[10px] text-[var(--accent)] font-semibold uppercase tracking-wide">
             {category}
           </span>

@@ -50,14 +50,21 @@ cp .env.example .env          # edit with your API keys (optional)
 
 Dashboard at `http://localhost:3117`. First sweep completes in ~30 seconds.
 
-### Docker
+### Docker (Recommended)
 
-```bash
-cp .env.example .env
-docker compose up -d
+**Windows (Podman):**
+```powershell
+.\scripts\dev-start.ps1              # One-click start (auto .env, DB migration, seed)
+.\scripts\dev-start.ps1 -Rebuild     # Rebuild and start
 ```
 
-The container exposes port `3117` with a built-in healthcheck at `/api/v1/health`.
+**Linux / Mac (Docker):**
+```bash
+./scripts/dev-start.sh               # One-click start
+./scripts/dev-start.sh --rebuild     # Rebuild and start
+```
+
+Visit `http://localhost:8080`
 
 ---
 
@@ -359,14 +366,24 @@ Full specification: [`docs/api.md`](docs/api.md) | [`docs/openapi.yaml`](docs/op
 
 ## Deployment
 
-### Production (Podman / Docker Compose)
+### Production (Linux Server)
 
 Full-stack deployment: CHAOS Engine + NewsPredict + PostgreSQL + Caddy reverse proxy.
 
 ```bash
 git clone https://github.com/magicnight/chaos-engine.git && cd chaos-engine
-cp .env.example .env              # configure (see below)
-podman-compose up -d              # or: docker compose up -d
+cp .env.example .env              # Configure production values (see required fields below)
+./scripts/deploy.sh               # One-click deploy (build, migrate, health check, seed)
+./scripts/deploy.sh --rebuild     # Rebuild and deploy
+```
+
+**Required `.env` fields:**
+```bash
+DOMAIN=chaos.yourdomain.com           # Set for auto HTTPS via Let's Encrypt
+NEXTAUTH_URL=https://chaos.yourdomain.com
+NEXTAUTH_SECRET=$(openssl rand -hex 32)
+CRON_SECRET=$(openssl rand -hex 16)
+POSTGRES_PASSWORD=$(openssl rand -hex 16)
 ```
 
 This starts 4 services:
@@ -378,17 +395,16 @@ Internet → Caddy (:80/:443, auto HTTPS)
                                 └─ PostgreSQL (:5432)
 ```
 
-**With a domain** (auto HTTPS):
-```bash
-# In .env:
-DOMAIN=chaos.yourdomain.com
-# Caddy automatically provisions Let's Encrypt certificate
-```
+**Without a domain**: Leave `DOMAIN` empty — accessible via `http://server-ip`.
 
-**Without a domain** (HTTP only):
-```bash
-# Leave DOMAIN empty in .env — accessible via http://server-ip
-```
+### Development Environment
+
+| Platform | Command | Runtime |
+|----------|---------|---------|
+| Windows | `.\scripts\dev-start.ps1` | Podman |
+| Linux / Mac | `./scripts/dev-start.sh` | Docker |
+
+Dev uses port `8080` (HTTP), auto-generates random secrets, auto-runs DB migration.
 
 ### CHAOS Engine Only (no frontend)
 
