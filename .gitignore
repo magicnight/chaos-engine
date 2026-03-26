@@ -31,6 +31,9 @@ newspredict/cache/
 newspredict/typechain-types/
 newspredict/tsconfig.tsbuildinfo
 
+# Claude Code
+.claude/
+
 # OMC state
 .omc/
 
