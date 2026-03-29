@@ -61,13 +61,7 @@ export async function GET(request: NextRequest) {
 
       if (!resolution) continue;
 
-      // Close the market first
-      await db
-        .update(markets)
-        .set({ status: 'closed' })
-        .where(eq(markets.id, market.id));
-
-      // Resolve with payout
+      // Resolve the market (single atomic update)
       await db
         .update(markets)
         .set({

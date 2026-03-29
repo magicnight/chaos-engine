@@ -18,8 +18,11 @@ export default function GlobalError({
       </div>
       <h2 className="text-lg font-bold mb-2">Something went wrong</h2>
       <p className="text-sm text-[var(--muted)] mb-6 max-w-xs">
-        {error.message || 'An unexpected error occurred'}
+        An unexpected error occurred. Please try again.
       </p>
+      {error.digest && (
+        <p className="text-[10px] text-[var(--muted)] mb-4 font-mono">Error ID: {error.digest}</p>
+      )}
       <button
         onClick={reset}
         className="px-6 py-2.5 rounded-full bg-[var(--accent)] text-black text-sm font-semibold"

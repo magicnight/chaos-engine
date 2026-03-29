@@ -195,6 +195,10 @@
     "signInToComment": "登录后评论",
     "noComments": "暂无评论"
   },
+  "follows": {
+    "follow": "关注",
+    "unfollow": "取消关注"
+  },
   "notifications": {
     "title": "通知",
     "empty": "暂无通知",

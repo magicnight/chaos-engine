@@ -195,6 +195,10 @@
     "signInToComment": "Sign in to comment",
     "noComments": "No comments yet"
   },
+  "follows": {
+    "follow": "Follow",
+    "unfollow": "Unfollow"
+  },
   "notifications": {
     "title": "Notifications",
     "empty": "No notifications yet",

@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
+import { useLocale } from '@/lib/i18n/context';
 
 interface UserProfile {
   user: {
@@ -39,6 +40,7 @@ export default function UserProfilePage() {
   const [loading, setLoading] = useState(true);
   const [following, setFollowing] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
+  const { t, locale } = useLocale();
 
   useEffect(() => {
     fetch(`/api/users/${userId}`)
@@ -81,15 +83,15 @@ export default function UserProfilePage() {
   if (!data) {
     return (
       <div className="p-4">
-        <p className="text-[var(--muted)] text-center py-8">User not found</p>
+        <p className="text-[var(--muted)] text-center py-8">{t('common.noData')}</p>
       </div>
     );
   }
 
-  const joinDate = new Date(data.user.createdAt).toLocaleDateString('en-US', {
-    month: 'short',
-    year: 'numeric',
-  });
+  const joinDate = new Date(data.user.createdAt).toLocaleDateString(
+    locale === 'zh' ? 'zh-CN' : 'en-US',
+    { month: 'short', year: 'numeric' }
+  );
   const isPositive = data.user.pnl >= 0;
 
   return (
@@ -99,8 +101,8 @@ export default function UserProfilePage() {
           {data.user.name?.[0]?.toUpperCase() || '?'}
         </div>
         <div className="flex-1">
-          <h1 className="text-xl font-bold">{data.user.name || 'Anonymous'}</h1>
-          <p className="text-sm text-[var(--muted)]">Joined {joinDate}</p>
+          <h1 className="text-xl font-bold">{data.user.name || t('common.anonymous')}</h1>
+          <p className="text-sm text-[var(--muted)]">{t('profile.joined', { date: joinDate })}</p>
         </div>
         <button
           onClick={handleFollow}
@@ -111,15 +113,15 @@ export default function UserProfilePage() {
               : 'bg-[var(--accent)] text-black'
           }`}
         >
-          {actionLoading ? '...' : following ? 'Following' : 'Follow'}
+          {actionLoading ? '...' : following ? t('profile.following') : t('follows.follow')}
         </button>
       </div>
 
       <div className="flex items-center gap-4 mb-6">
         <span className="text-sm text-[var(--muted)]">
-          {data.user.totalTrades} trades
+          {data.user.totalTrades} {t('common.trades')}
         </span>
-        <span className="text-sm text-[var(--muted)]">{data.user.winRate}% win</span>
+        <span className="text-sm text-[var(--muted)]">{data.user.winRate}% {t('profile.win')}</span>
         <span
           className={`text-sm font-bold ${
             isPositive ? 'text-[var(--success)]' : 'text-[var(--danger)]'
@@ -131,7 +133,7 @@ export default function UserProfilePage() {
 
       {data.recentTrades.length > 0 && (
         <section className="mb-6">
-          <h2 className="text-lg font-bold mb-3">Recent Activity</h2>
+          <h2 className="text-lg font-bold mb-3">{t('market.recentActivity')}</h2>
           <div className="space-y-2">
             {data.recentTrades.map((t: any) => (
               <Link
@@ -151,7 +153,7 @@ export default function UserProfilePage() {
 
       {data.positions.length > 0 && (
         <section>
-          <h2 className="text-lg font-bold mb-3">Open Positions</h2>
+          <h2 className="text-lg font-bold mb-3">{t('portfolio.positions')}</h2>
           <div className="space-y-2">
             {data.positions.map((p: any) => (
               <Link
@@ -164,7 +166,7 @@ export default function UserProfilePage() {
                   <span className={p.side === 'YES' ? 'text-[var(--success)]' : 'text-[var(--danger)]'}>
                     {p.side}
                   </span>{' '}
-                  {p.shares.toFixed(1)} shares @ ${p.currentPrice.toFixed(2)}
+                  {p.shares.toFixed(1)} {t('common.shares')} @ ${p.currentPrice.toFixed(2)}
                 </p>
               </Link>
             ))}
