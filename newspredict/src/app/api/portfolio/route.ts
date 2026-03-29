@@ -77,6 +77,9 @@ export async function GET() {
       user.totalTrades > 0 ? Math.round((user.wins / user.totalTrades) * 100) : 0;
 
     return NextResponse.json({
+      userId: user.id,
+      userName: user.name,
+      createdAt: user.createdAt.toISOString(),
       balance: Number(user.balance),
       totalPnl,
       positions: positionList,

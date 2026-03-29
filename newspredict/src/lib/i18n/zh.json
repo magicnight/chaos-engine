@@ -109,7 +109,9 @@
     "resolvedPositions": "已结算 ({n})",
     "totalPnl": "盈亏",
     "winRate": "胜率",
-    "positions": "持仓"
+    "positions": "持仓",
+    "noPositions": "暂无持仓",
+    "now": "现价"
   },
   "leaderboard": {
     "title": "排行榜",

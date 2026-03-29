@@ -44,10 +44,10 @@ export default function ProfilePage() {
         }
         setData({
           user: {
-            id: (session?.user as any)?.id || '',
-            name: session?.user?.name || null,
+            id: portfolio.userId || (session?.user as any)?.id || '',
+            name: portfolio.userName || session?.user?.name || null,
             avatarUrl: null,
-            createdAt: new Date().toISOString(),
+            createdAt: portfolio.createdAt || new Date().toISOString(),
             totalTrades: portfolio.positions?.length || 0,
             winRate: portfolio.winRate || 0,
             pnl: portfolio.totalPnl || 0,

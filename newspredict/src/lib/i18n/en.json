@@ -109,7 +109,9 @@
     "resolvedPositions": "Resolved ({n})",
     "totalPnl": "P&L",
     "winRate": "Win Rate",
-    "positions": "Positions"
+    "positions": "Positions",
+    "noPositions": "No positions yet",
+    "now": "Now"
   },
   "leaderboard": {
     "title": "Leaderboard",

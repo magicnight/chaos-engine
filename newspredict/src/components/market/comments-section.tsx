@@ -29,6 +29,7 @@ export function CommentsSection({ marketId }: { marketId: string }) {
   const { data: session } = useSession();
   const [input, setInput] = useState('');
   const [posting, setPosting] = useState(false);
+  const [error, setError] = useState('');
 
   const { data: comments, mutate } = useSWR<Comment[]>(
     `/api/comments?marketId=${marketId}`,
@@ -39,6 +40,7 @@ export function CommentsSection({ marketId }: { marketId: string }) {
   async function handlePost() {
     if (!input.trim() || posting) return;
     setPosting(true);
+    setError('');
     try {
       const res = await fetch('/api/comments', {
         method: 'POST',
@@ -48,8 +50,12 @@ export function CommentsSection({ marketId }: { marketId: string }) {
       if (res.ok) {
         setInput('');
         mutate();
+      } else {
+        const data = await res.json().catch(() => ({}));
+        setError(data.error || t('common.error'));
       }
     } catch {
+      setError(t('common.networkError'));
     } finally {
       setPosting(false);
     }
@@ -83,6 +89,8 @@ export function CommentsSection({ marketId }: { marketId: string }) {
       ) : (
         <p className="text-xs text-[var(--muted)] mb-3">{t('comments.signInToComment')}</p>
       )}
+
+      {error && <p className="text-xs text-[var(--danger)] mb-2">{error}</p>}
 
       {list.length === 0 ? (
         <p className="text-xs text-[var(--muted)]">{t('comments.noComments')}</p>

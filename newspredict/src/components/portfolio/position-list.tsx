@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useLocale } from '@/lib/i18n/context';
 
 interface PositionItem {
   id: string;
@@ -26,6 +27,7 @@ interface PositionListProps {
 }
 
 export function PositionList({ positions, filter }: PositionListProps) {
+  const { t } = useLocale();
   const filtered = positions.filter((p: any) =>
     filter === 'active' ? p.market.status === 'open' : p.market.status === 'resolved'
   );
@@ -33,7 +35,7 @@ export function PositionList({ positions, filter }: PositionListProps) {
   if (filtered.length === 0) {
     return (
       <p className="text-center text-sm text-[var(--muted)] py-6">
-        No {filter} positions
+        {t('portfolio.noPositions')}
       </p>
     );
   }
@@ -65,14 +67,14 @@ export function PositionList({ positions, filter }: PositionListProps) {
             <div className="flex items-center justify-between text-xs">
               <div className="flex items-center gap-3">
                 <span className={p.side === 'YES' ? 'text-[var(--success)]' : 'text-[var(--danger)]'}>
-                  {p.side}: {p.shares.toFixed(1)} shares
+                  {p.side}: {p.shares.toFixed(1)} {t('common.shares')}
                 </span>
                 <span className="text-[var(--muted)]">
                   @ ${p.avgPrice.toFixed(2)}
                 </span>
                 {filter === 'active' && (
                   <span className="text-[var(--muted)]">
-                    Now: ${p.currentPrice.toFixed(2)}
+                    {t('portfolio.now')}: ${p.currentPrice.toFixed(2)}
                   </span>
                 )}
               </div>

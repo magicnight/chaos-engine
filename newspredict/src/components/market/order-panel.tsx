@@ -1,9 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAccount } from 'wagmi';
 import { formatUnits } from 'viem';
-import { useChaosBalance, useApproveToken, useBuyShares, useSellShares } from '@/lib/web3/hooks';
+import { useChaosBalance, useApproveToken, useBuyShares } from '@/lib/web3/hooks';
 import { CONTRACTS } from '@/lib/web3/contracts';
 import { useLocale } from '@/lib/i18n/context';
 
@@ -54,7 +54,7 @@ export function OrderPanel({ marketId, yesPrice, noPrice, onchainMarketId, onTra
   const { t } = useLocale();
 
   const { isConnected, chain } = useAccount();
-  const { balance: cruxBalance, refetch: refetchBalance } = useChaosBalance();
+  const { balance: chaosBalance, refetch: refetchBalance } = useChaosBalance();
   const { approve, isPending: approving, isConfirming: approveConfirming, isSuccess: approveSuccess, hash: approveHash } = useApproveToken();
   const { buy, isPending: buying, isConfirming: buyConfirming, isSuccess: buySuccess, hash: buyHash } = useBuyShares();
 
@@ -62,8 +62,8 @@ export function OrderPanel({ marketId, yesPrice, noPrice, onchainMarketId, onTra
   const estimatedShares = amount / currentPrice;
   const potentialProfit = estimatedShares * (1 - currentPrice);
 
-  const formattedCruxBalance = cruxBalance
-    ? parseFloat(formatUnits(cruxBalance as bigint, 18)).toFixed(2)
+  const formattedChaosBalance = chaosBalance
+    ? parseFloat(formatUnits(chaosBalance as bigint, 18)).toFixed(2)
     : '0.00';
 
   const chainId = chain?.id;
@@ -105,17 +105,13 @@ export function OrderPanel({ marketId, yesPrice, noPrice, onchainMarketId, onTra
     buy(onchainMarketId, sideNum as 0 | 1, estimatedShares.toFixed(4), amount.toString(), chainId);
   }
 
-  if (buySuccess) {
-    refetchBalance();
-    // Save txHash to backend
-    if (buyHash) {
-      fetch('/api/trades', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tradeId: marketId, txHash: buyHash }),
-      }).catch(() => {});
+  const buyHandled = useRef(false);
+  useEffect(() => {
+    if (buySuccess && !buyHandled.current) {
+      buyHandled.current = true;
+      refetchBalance();
     }
-  }
+  }, [buySuccess, refetchBalance]);
 
   const isOnchain = mode === 'onchain';
   const onchainBusy = approving || approveConfirming || buying || buyConfirming;
@@ -150,7 +146,7 @@ export function OrderPanel({ marketId, yesPrice, noPrice, onchainMarketId, onTra
       {isOnchain && (
         <div className="flex items-center justify-between mb-3 px-1">
           <span className="text-xs text-[var(--muted)]">{t('order.chaosBalance')}</span>
-          <span className="text-xs font-mono text-[var(--foreground)]">{formattedCruxBalance} CHAOS</span>
+          <span className="text-xs font-mono text-[var(--foreground)]">{formattedChaosBalance} CHAOS</span>
         </div>
       )}
 

@@ -86,7 +86,7 @@ export default async function HomePage() {
 
   return (
     <div>
-      <TopBar userName="Guest" />
+      <TopBar />
       <SummaryBar totalPnl={0} activePositions={markets.length} winRate={0} />
       <CategoryPills />
 
@@ -161,8 +161,8 @@ export default async function HomePage() {
           <h2 className="text-lg font-bold mb-3"><T k="home.justResolved" /></h2>
           <ResolvedCard
             title={resolvedCard.question}
-            result={resolvedCard.resolutionResult === 'yes' ? 'win' : 'loss'}
-            amount="0"
+            result={resolvedCard.resolutionResult === 'YES' ? 'win' : 'loss'}
+            amount={resolvedCard.volume > 0 ? Math.round(resolvedCard.volume).toString() : '0'}
           />
         </section>
       )}

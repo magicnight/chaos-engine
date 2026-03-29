@@ -75,7 +75,7 @@ export default function LeaderboardPage() {
               <div
                 key={entry.userId}
                 className={`flex items-center gap-3 rounded-xl p-4 ${
-                  rank <= 3 ? 'bg-[var(--card)]' : 'bg-[var(--card)]'
+                  rank <= 3 ? 'bg-[var(--card)] border border-[var(--warning)]/10' : 'bg-[var(--card)]'
                 }`}
               >
                 <span
