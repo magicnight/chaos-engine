@@ -3,6 +3,7 @@ import { users, markets, trades, positions } from './db/schema';
 import { eq, and, sql } from 'drizzle-orm';
 import { calculateCost, getPrice, sharesForCost } from './market-engine';
 import { sendNotification } from './notify';
+import { checkAchievements } from './achievements';
 
 export interface TradeResult {
   success: boolean;
@@ -149,6 +150,9 @@ export async function executeTrade(
       `${shares.toFixed(1)} shares @ $${(cost / shares).toFixed(2)}`,
       `/markets/${marketId}`
     );
+
+    // Check achievements (non-blocking)
+    checkAchievements(userId).catch(() => {});
 
     return { success: true, tradeId: trade.id, shares, cost, newPrice };
   } catch (err: unknown) {

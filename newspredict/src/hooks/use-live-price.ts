@@ -1,6 +1,4 @@
-import useSWR from 'swr';
-
-const fetcher = (url: string) => fetch(url).then((r) => r.json());
+import { useState, useEffect, useRef } from 'react';
 
 interface LivePrice {
   yesPrice: number;
@@ -10,16 +8,37 @@ interface LivePrice {
 }
 
 export function useLivePrice(marketId: string, initialData: LivePrice) {
-  const { data } = useSWR(`/api/markets?id=${marketId}`, fetcher, {
-    refreshInterval: 10000,
-    fallbackData: initialData,
-    revalidateOnFocus: true,
-  });
+  const [data, setData] = useState<LivePrice>(initialData);
+  const esRef = useRef<EventSource | null>(null);
 
-  return {
-    yesPrice: data?.yesPrice ?? initialData.yesPrice,
-    noPrice: data?.noPrice ?? initialData.noPrice,
-    volume: data?.volume ?? initialData.volume,
-    traderCount: data?.traderCount ?? initialData.traderCount,
-  };
+  useEffect(() => {
+    const es = new EventSource(`/api/sse/prices?id=${marketId}`);
+    esRef.current = es;
+
+    es.onmessage = (event) => {
+      try {
+        const parsed = JSON.parse(event.data);
+        if (parsed.error) return;
+        setData({
+          yesPrice: parsed.yesPrice ?? initialData.yesPrice,
+          noPrice: parsed.noPrice ?? initialData.noPrice,
+          volume: parsed.volume ?? initialData.volume,
+          traderCount: parsed.traderCount ?? initialData.traderCount,
+        });
+      } catch {
+        // ignore parse errors
+      }
+    };
+
+    es.onerror = () => {
+      // EventSource auto-reconnects
+    };
+
+    return () => {
+      es.close();
+      esRef.current = null;
+    };
+  }, [marketId, initialData.yesPrice, initialData.noPrice, initialData.volume, initialData.traderCount]);
+
+  return data;
 }

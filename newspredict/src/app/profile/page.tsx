@@ -31,6 +31,7 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [followerCount, setFollowerCount] = useState(0);
   const [followingCount, setFollowingCount] = useState(0);
+  const [badges, setBadges] = useState<{ key: string; emoji: string; title: string; titleZh: string }[]>([]);
   const { t, locale } = useLocale();
   const { data: session } = useSession();
 
@@ -70,6 +71,10 @@ export default function ProfilePage() {
     fetch(`/api/follows/list?userId=${userId}&type=following`)
       .then((r) => r.json())
       .then((d) => setFollowingCount(d.users?.length || 0))
+      .catch(() => {});
+    fetch(`/api/achievements?userId=${userId}`)
+      .then((r) => r.json())
+      .then((d) => setBadges(d.achievements || []))
       .catch(() => {});
   }, [data?.user?.id]);
 
@@ -138,6 +143,24 @@ export default function ProfilePage() {
           <p className="text-xs text-[var(--muted)]">{t('profile.followers')}</p>
         </div>
       </div>
+
+      {badges.length > 0 && (
+        <section className="mb-6">
+          <h2 className="text-lg font-bold mb-3">{locale === 'zh' ? '成就徽章' : 'Achievements'}</h2>
+          <div className="flex flex-wrap gap-2">
+            {badges.map((b) => (
+              <div
+                key={b.key}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[var(--card)] border border-[var(--border-subtle)] text-xs"
+                title={locale === 'zh' ? b.titleZh : b.title}
+              >
+                <span>{b.emoji}</span>
+                <span>{locale === 'zh' ? b.titleZh : b.title}</span>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       <section>
         <h2 className="text-lg font-bold mb-3">{t('profile.quickLinks')}</h2>

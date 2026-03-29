@@ -1,0 +1,202 @@
+openapi: 3.1.0
+info:
+  title: CHAOS Engine API
+  description: Connected Human-Augmented OSINT Suite — Real-time intelligence from 46 data sources
+  version: 0.1.0
+  contact:
+    name: ChaosDevOps
+servers:
+  - url: http://localhost:3117
+    description: Local development
+  - url: https://{domain}
+    description: Production
+    variables:
+      domain:
+        default: chaos.yourdomain.com
+
+security:
+  - ApiKeyAuth: []
+
+paths:
+  /api/v1/health:
+    get:
+      summary: Health check
+      tags: [System]
+      security: []
+      responses:
+        '200':
+          description: Service healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string, example: ok }
+                  uptime_secs: { type: integer }
+                  sweep_count: { type: integer }
+
+  /api/v1/data:
+    get:
+      summary: Current sweep data
+      description: Returns the latest data from all 46 OSINT sources
+      tags: [Intelligence]
+      security: []
+      responses:
+        '200':
+          description: Full sweep data object
+          content:
+            application/json:
+              schema:
+                type: object
+
+  /api/v1/events:
+    get:
+      summary: Intelligence events
+      description: Extracted events from the latest sweep
+      tags: [Intelligence]
+      responses:
+        '200':
+          description: Event list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  events:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        title: { type: string }
+                        source: { type: string }
+                        severity: { type: string }
+
+  /api/v1/sources:
+    get:
+      summary: Source health status
+      description: List all 46 data sources with reliability rates and latency
+      tags: [System]
+      security: []
+      responses:
+        '200':
+          description: Source list with health metrics
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    name: { type: string }
+                    tier: { type: integer }
+                    reliability: { type: number }
+                    avgDurationMs: { type: integer }
+
+  /api/v1/trends:
+    get:
+      summary: Historical trends
+      description: Aggregated data from recent sweeps
+      tags: [Intelligence]
+      security: []
+      responses:
+        '200':
+          description: Trend data
+
+  /api/v1/analysis:
+    get:
+      summary: AI analysis brief
+      description: LLM-generated intelligence analysis
+      tags: [Intelligence]
+      security: []
+      responses:
+        '200':
+          description: Analysis object
+
+  /api/v1/correlations:
+    get:
+      summary: Cross-source correlations
+      tags: [Intelligence]
+      responses:
+        '200':
+          description: Correlation data
+
+  /api/v1/market-seeds:
+    get:
+      summary: Prediction market seeds
+      description: Generated prediction questions from current intelligence data
+      tags: [Markets]
+      responses:
+        '200':
+          description: Market seed list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  lang: { type: string }
+                  seeds:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { type: string }
+                        question: { type: string }
+                        category: { type: string }
+                        confidence: { type: number }
+                        resolution_criteria: { type: string }
+
+  /api/v1/sse:
+    get:
+      summary: Server-Sent Events stream
+      description: Real-time push updates when new sweeps complete
+      tags: [System]
+      security: []
+      responses:
+        '200':
+          description: SSE event stream
+          content:
+            text/event-stream: {}
+
+  /api/v1/query:
+    post:
+      summary: Natural language query
+      description: Query intelligence data using natural language (requires LLM)
+      tags: [Intelligence]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                query: { type: string }
+              required: [query]
+      responses:
+        '200':
+          description: Query response
+
+  /api/v1/resolve-check:
+    post:
+      summary: Market resolution check
+      description: Check if a market condition is met based on current data
+      tags: [Markets]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                question: { type: string }
+                resolution_source: { type: string }
+      responses:
+        '200':
+          description: Resolution result
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-CHAOS-Key
+      description: API key for authenticated endpoints (required in public mode)

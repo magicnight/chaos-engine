@@ -103,6 +103,13 @@ export const notifications = pgTable('notifications', {
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 });
 
+export const achievements = pgTable('achievements', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  userId: uuid('user_id').notNull().references(() => users.id),
+  key: text('key').notNull(), // e.g. 'first_trade', 'win_streak_5'
+  unlockedAt: timestamp('unlocked_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
 export const follows = pgTable('follows', {
   followerId: uuid('follower_id').notNull().references(() => users.id),
   followingId: uuid('following_id').notNull().references(() => users.id),

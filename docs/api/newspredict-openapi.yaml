@@ -1,0 +1,295 @@
+openapi: 3.1.0
+info:
+  title: NewsPredict API
+  description: OSINT-powered prediction market — trade on real-time intelligence
+  version: 0.1.0
+servers:
+  - url: http://localhost:3000
+    description: Local development
+
+paths:
+  /api/markets:
+    get:
+      summary: List markets
+      tags: [Markets]
+      parameters:
+        - name: status
+          in: query
+          schema: { type: string, enum: [open, closed, resolved], default: open }
+        - name: category
+          in: query
+          schema: { type: string }
+        - name: q
+          in: query
+          description: Search query (server-side ILIKE)
+          schema: { type: string }
+        - name: id
+          in: query
+          description: Get single market by ID
+          schema: { type: string, format: uuid }
+        - name: limit
+          in: query
+          schema: { type: integer, default: 20, maximum: 50 }
+      responses:
+        '200':
+          description: Market list or single market
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Market' }
+    post:
+      summary: Create market
+      tags: [Markets]
+      security: [{ SessionAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [question, category, closeAt, resolutionCriteria]
+              properties:
+                question: { type: string }
+                description: { type: string }
+                category: { type: string }
+                closeAt: { type: string, format: date-time }
+                resolutionCriteria: { type: string }
+                resolutionSource: { type: string }
+                imageUrl: { type: string, format: uri }
+      responses:
+        '200':
+          description: Created market
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Market' }
+
+  /api/trades:
+    post:
+      summary: Execute trade
+      tags: [Trading]
+      security: [{ SessionAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [marketId, side, amount]
+              properties:
+                marketId: { type: string, format: uuid }
+                side: { type: string, enum: [YES, NO] }
+                amount: { type: number, minimum: 1, maximum: 10000 }
+      responses:
+        '200':
+          description: Trade result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  tradeId: { type: string, format: uuid }
+                  shares: { type: number }
+                  cost: { type: number }
+    patch:
+      summary: Update trade with txHash
+      tags: [Trading]
+      security: [{ SessionAuth: [] }]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                tradeId: { type: string, format: uuid }
+                txHash: { type: string, pattern: '^0x[0-9a-f]{64}$' }
+      responses:
+        '200':
+          description: Success
+
+  /api/portfolio:
+    get:
+      summary: Get user portfolio
+      tags: [User]
+      security: [{ SessionAuth: [] }]
+      responses:
+        '200':
+          description: Portfolio with positions
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  userId: { type: string }
+                  userName: { type: string }
+                  createdAt: { type: string, format: date-time }
+                  balance: { type: number }
+                  totalPnl: { type: number }
+                  activeCount: { type: integer }
+                  winRate: { type: integer }
+                  positions: { type: array, items: { $ref: '#/components/schemas/Position' } }
+
+  /api/comments:
+    get:
+      summary: Get market comments
+      tags: [Social]
+      parameters:
+        - name: marketId
+          in: query
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Comment list
+    post:
+      summary: Post comment
+      tags: [Social]
+      security: [{ SessionAuth: [] }]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [marketId, content]
+              properties:
+                marketId: { type: string, format: uuid }
+                content: { type: string, maxLength: 2000 }
+      responses:
+        '200':
+          description: Created comment
+
+  /api/follows:
+    post:
+      summary: Follow/unfollow user
+      tags: [Social]
+      security: [{ SessionAuth: [] }]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [targetUserId, action]
+              properties:
+                targetUserId: { type: string, format: uuid }
+                action: { type: string, enum: [follow, unfollow] }
+      responses:
+        '200':
+          description: Updated follow counts
+
+  /api/notifications:
+    get:
+      summary: Get notifications
+      tags: [User]
+      security: [{ SessionAuth: [] }]
+      responses:
+        '200':
+          description: Notification list with unread count
+    post:
+      summary: Mark notifications read
+      tags: [User]
+      security: [{ SessionAuth: [] }]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                action: { type: string, enum: [mark-read, mark-all-read] }
+                notificationId: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Success
+
+  /api/achievements:
+    get:
+      summary: Get user achievements
+      tags: [User]
+      parameters:
+        - name: userId
+          in: query
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Achievement list
+
+  /api/leaderboard:
+    get:
+      summary: Leaderboard rankings
+      tags: [User]
+      parameters:
+        - name: period
+          in: query
+          schema: { type: string, enum: [daily, weekly, alltime], default: weekly }
+      responses:
+        '200':
+          description: Ranked trader list
+
+  /api/sse/prices:
+    get:
+      summary: Real-time price SSE stream
+      tags: [Trading]
+      parameters:
+        - name: id
+          in: query
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: SSE stream of price updates
+          content:
+            text/event-stream: {}
+
+  /api/market-seeds:
+    get:
+      summary: Sync markets from CHAOS Engine
+      tags: [System]
+      security: [{ CronAuth: [] }]
+      responses:
+        '200':
+          description: Created market count
+
+  /api/auto-resolve:
+    get:
+      summary: Auto-resolve expired markets
+      tags: [System]
+      security: [{ CronAuth: [] }]
+      responses:
+        '200':
+          description: Resolution results
+
+components:
+  schemas:
+    Market:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        question: { type: string }
+        category: { type: string }
+        status: { type: string, enum: [open, closed, resolved, cancelled] }
+        yesPrice: { type: number }
+        noPrice: { type: number }
+        volume: { type: number }
+        traderCount: { type: integer }
+        closeAt: { type: string, format: date-time }
+        createdAt: { type: string, format: date-time }
+    Position:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        side: { type: string, enum: [YES, NO] }
+        shares: { type: number }
+        avgPrice: { type: number }
+        currentPrice: { type: number }
+        unrealizedPnl: { type: number }
+
+  securitySchemes:
+    SessionAuth:
+      type: http
+      scheme: bearer
+      description: NextAuth JWT session token (via cookie)
+    CronAuth:
+      type: apiKey
+      in: header
+      name: x-cron-secret
+      description: Cron secret for system endpoints
