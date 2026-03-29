@@ -17,9 +17,11 @@ RUN apk add --no-cache ca-certificates && \
     adduser -D chaos && \
     mkdir -p /data/runs && chown chaos:chaos /data/runs
 COPY --from=builder /app/target/release/chaos /usr/local/bin/
+COPY --from=builder /app/static /app/static
 USER chaos
 VOLUME /data/runs
 ENV DATABASE_PATH=/data/runs/chaos.db
+ENV STATIC_DIR=/app/static
 EXPOSE 3117
 HEALTHCHECK --interval=60s CMD wget -q --spider http://localhost:3117/api/v1/health || exit 1
 ENTRYPOINT ["chaos"]

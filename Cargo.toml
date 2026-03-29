@@ -23,7 +23,7 @@ async-trait = "0.1"
 futures = "0.3"
 rusqlite = { version = "0.32", features = ["bundled"] }
 axum = "0.8"
-tower-http = { version = "0.6", features = ["cors"] }
+tower-http = { version = "0.6", features = ["cors", "fs"] }
 tokio-stream = { version = "0.1", features = ["sync"] }
 sha2 = "0.10"
 tracing = "0.1"

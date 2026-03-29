@@ -16,6 +16,7 @@ use tokio::sync::{broadcast, RwLock};
 use tokio_stream::wrappers::BroadcastStream;
 use tokio_stream::StreamExt;
 use tower_http::cors::CorsLayer;
+use tower_http::services::ServeDir;
 
 use crate::bot;
 use crate::bot::discord::DiscordBot;
@@ -128,7 +129,13 @@ pub fn create_router(state: Arc<AppState>, public_mode: bool, _api_key: Option<S
         CorsLayer::permissive()
     };
 
-    app.with_state(state).layer(cors)
+    // Serve static assets (CSS/JS) from static/ directory
+    let static_dir = std::env::var("STATIC_DIR").unwrap_or_else(|_| "static".to_string());
+    let static_service = ServeDir::new(static_dir);
+
+    app.with_state(state)
+        .nest_service("/static", static_service)
+        .layer(cors)
 }
 
 // ---------------------------------------------------------------------------
