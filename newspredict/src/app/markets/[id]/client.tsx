@@ -7,6 +7,7 @@ import { MarketStats } from '@/components/market/market-stats';
 import { useLocale } from '@/lib/i18n/context';
 import { useLivePrice } from '@/hooks/use-live-price';
 import { CommentsSection } from '@/components/market/comments-section';
+import { SentimentBadge } from '@/components/market/sentiment-badge';
 
 interface TradeItem {
   id: string;
@@ -132,6 +133,8 @@ export function MarketDetailClient({
           </div>
         )}
       </div>
+
+      <SentimentBadge marketId={marketId} />
 
       <CommentsSection marketId={marketId} />
     </div>

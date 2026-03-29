@@ -4,6 +4,7 @@ import { eq, and, sql } from 'drizzle-orm';
 import { calculateCost, getPrice, sharesForCost } from './market-engine';
 import { sendNotification } from './notify';
 import { checkAchievements } from './achievements';
+import { processCopyTrades } from './copy-trade';
 
 export interface TradeResult {
   success: boolean;
@@ -151,8 +152,9 @@ export async function executeTrade(
       `/markets/${marketId}`
     );
 
-    // Check achievements (non-blocking)
+    // Check achievements and copy-trades (non-blocking)
     checkAchievements(userId).catch(() => {});
+    processCopyTrades(userId, marketId, side).catch(() => {});
 
     return { success: true, tradeId: trade.id, shares, cost, newPrice };
   } catch (err: unknown) {

@@ -110,6 +110,15 @@ export const achievements = pgTable('achievements', {
   unlockedAt: timestamp('unlocked_at', { withTimezone: true }).defaultNow().notNull(),
 });
 
+export const copySettings = pgTable('copy_settings', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  followerId: uuid('follower_id').notNull().references(() => users.id),
+  leaderId: uuid('leader_id').notNull().references(() => users.id),
+  maxAmount: integer('max_amount').default(50).notNull(),
+  active: integer('active').default(1).notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
 export const follows = pgTable('follows', {
   followerId: uuid('follower_id').notNull().references(() => users.id),
   followingId: uuid('following_id').notNull().references(() => users.id),
