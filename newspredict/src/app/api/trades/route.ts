@@ -4,12 +4,16 @@ import { executeTrade } from '@/lib/trade-executor';
 import { db } from '@/lib/db';
 import { trades } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
+import { rateLimit } from '@/lib/rate-limit';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const TX_HASH_RE = /^0x[0-9a-f]{64}$/i;
 
 export async function POST(request: NextRequest) {
   try {
+    const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+    const { allowed } = rateLimit(ip, 'trade', 30); // 30 trades/min
+    if (!allowed) return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
     const session = await auth();
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

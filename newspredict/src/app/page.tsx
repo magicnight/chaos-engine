@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import { TopBar } from '@/components/layout/top-bar';
 import { CategoryPills } from '@/components/layout/category-pills';
 import { SummaryBar } from '@/components/portfolio/summary-bar';
@@ -10,18 +11,30 @@ import { ResolvedCard } from '@/components/cards/resolved-card';
 import { chaosClient } from '@/lib/chaos-client';
 import { T } from '@/components/i18n-text';
 import { getCategoryImage } from '@/lib/category-image';
+import { db } from '@/lib/db';
+import { markets } from '@/lib/db/schema';
+import { eq, desc } from 'drizzle-orm';
+import { getPrice } from '@/lib/market-engine';
 
 export const revalidate = 15;
 
-const API_BASE = process.env.INTERNAL_URL || `http://localhost:${process.env.PORT || 3000}`;
-
-async function getMarkets(params: string) {
+async function getMarkets(status: string, limit: number) {
   try {
-    const res = await fetch(`${API_BASE}/api/markets?${params}`, {
-      cache: 'no-store',
+    const rows = await db
+      .select()
+      .from(markets)
+      .where(eq(markets.status, status))
+      .orderBy(desc(markets.createdAt))
+      .limit(limit);
+    return rows.map((m: any) => {
+      const price = getPrice(Number(m.yesShares), Number(m.noShares), Number(m.liquidityParam));
+      return {
+        id: m.id, question: m.question, category: m.category, status: m.status,
+        imageUrl: m.imageUrl, yesPrice: price.yes, noPrice: price.no,
+        volume: Number(m.volume), traderCount: m.traderCount,
+        resolutionResult: m.resolutionResult,
+      };
     });
-    if (!res.ok) return [];
-    return res.json();
   } catch {
     return [];
   }
@@ -43,26 +56,16 @@ async function getBreakingNews() {
 
 export default async function HomePage() {
   const [openMarkets, resolvedMarkets, breaking] = await Promise.all([
-    getMarkets('status=open&limit=20'),
-    getMarkets('status=resolved&limit=3'),
+    getMarkets('open', 20),
+    getMarkets('resolved', 3),
     getBreakingNews(),
   ]);
 
-  // Auto-seed from CHAOS if few markets exist
-  if (Array.isArray(openMarkets) && openMarkets.length < 3) {
-    try {
-      await fetch(`${API_BASE}/api/market-seeds`, {
-        headers: { 'x-cron-secret': process.env.CRON_SECRET || '' },
-        cache: 'no-store',
-      });
-    } catch {}
-  }
-
-  const markets = Array.isArray(openMarkets) ? openMarkets : [];
+  const marketList = Array.isArray(openMarkets) ? openMarkets : [];
   const resolved = Array.isArray(resolvedMarkets) ? resolvedMarkets : [];
 
-  const hero = markets[0] || null;
-  const miniCards = markets.slice(0, 5).map((m: any) => ({
+  const hero = marketList[0] || null;
+  const miniCards = marketList.slice(0, 5).map((m: any) => ({
     label: (m.question || '').substring(0, 20),
     yesPercent: Math.round((m.yesPrice || 0.5) * 100),
     price: (m.yesPrice || 0.5).toFixed(2),
@@ -70,7 +73,7 @@ export default async function HomePage() {
     icon: (m.category || 'M')[0],
     href: `/markets/${m.id}`,
   }));
-  const trending = markets.slice(0, 4).map((m: any) => ({
+  const trending = marketList.slice(0, 4).map((m: any) => ({
     title: m.question || '',
     category: m.category || 'General',
     yesPercent: Math.round((m.yesPrice || 0.5) * 100),
@@ -79,22 +82,22 @@ export default async function HomePage() {
     href: `/markets/${m.id}`,
     imageUrl: m.imageUrl || getCategoryImage(m.category || 'other', m.id),
   }));
-  const quickPoll = markets[1] || markets[0] || null;
+  const quickPoll = marketList[1] || marketList[0] || null;
   const resolvedCard = resolved[0] || null;
 
-  const hasData = markets.length > 0;
+  const hasData = marketList.length > 0;
 
   return (
     <div>
       <TopBar />
-      <SummaryBar totalPnl={0} activePositions={markets.length} winRate={0} />
+      <SummaryBar totalPnl={0} activePositions={marketList.length} winRate={0} />
       <CategoryPills />
 
       <section className="px-4 mb-6">
         <div className="flex justify-between items-center mb-3">
           <h2 className="text-lg font-bold"><T k="home.topStories" /></h2>
           <span className="text-xs text-[var(--muted)]">
-            {hasData ? <T k="home.activeMarkets" vars={{ n: markets.length }} /> : <T k="home.waitingForData" />}
+            {hasData ? <T k="home.activeMarkets" vars={{ n: marketList.length }} /> : <T k="home.waitingForData" />}
           </span>
         </div>
         {hero ? (

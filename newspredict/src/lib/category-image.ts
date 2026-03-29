@@ -1,7 +1,7 @@
 const CATEGORY_IMAGE_COUNT: Record<string, number> = {
-  economics: 4,
+  economics: 3,
   politics: 3,
-  technology: 4,
+  technology: 3,
   geopolitics: 3,
   environment: 3,
   health: 3,
@@ -23,5 +23,5 @@ export function getCategoryImage(category: string, marketId: string): string {
   const cat = CATEGORY_IMAGE_COUNT[category] ? category : 'other';
   const count = CATEGORY_IMAGE_COUNT[cat];
   const index = (simpleHash(marketId) % count) + 1;
-  return `/images/categories/${cat}/${index}.svg`;
+  return `/images/categories/${cat}/${index}.jpg`;
 }
