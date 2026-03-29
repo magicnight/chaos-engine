@@ -36,7 +36,8 @@ export async function GET(request: NextRequest) {
       conditions.push(eq(markets.category, category));
     }
     if (q && q.trim()) {
-      conditions.push(ilike(markets.question, `%${q.trim()}%`));
+      const escaped = q.trim().replace(/[%_\\]/g, '\\$&');
+      conditions.push(ilike(markets.question, `%${escaped}%`));
     }
 
     const rows = await db

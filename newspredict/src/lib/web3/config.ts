@@ -2,11 +2,11 @@ import { http, createConfig, fallback } from 'wagmi';
 import { bsc, bscTestnet } from 'wagmi/chains';
 
 // BSC Mainnet RPC: Alchemy → Ankr → BSCScan (public)
-const ALCHEMY_KEY = process.env.NEXT_PUBLIC_ALCHEMY_API_KEY || 'lIlW8P7vF9-Qmn8hKxbmu';
+const ALCHEMY_KEY = process.env.NEXT_PUBLIC_ALCHEMY_API_KEY || '';
 const ANKR_KEY = process.env.NEXT_PUBLIC_ANKR_API_KEY || '';
 
 const bscTransport = fallback([
-  http(`https://bnb-mainnet.g.alchemy.com/v2/${ALCHEMY_KEY}`),
+  ...(ALCHEMY_KEY ? [http(`https://bnb-mainnet.g.alchemy.com/v2/${ALCHEMY_KEY}`)] : []),
   http(ANKR_KEY ? `https://rpc.ankr.com/bsc/${ANKR_KEY}` : 'https://rpc.ankr.com/bsc'),
   http('https://bsc-dataseed.bnbchain.org'),
 ]);

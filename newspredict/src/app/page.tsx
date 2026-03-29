@@ -11,7 +11,7 @@ import { chaosClient } from '@/lib/chaos-client';
 import { T } from '@/components/i18n-text';
 import { getCategoryImage } from '@/lib/category-image';
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 15;
 
 const API_BASE = process.env.INTERNAL_URL || `http://localhost:${process.env.PORT || 3000}`;
 

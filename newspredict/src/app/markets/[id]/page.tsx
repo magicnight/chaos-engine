@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { db } from '@/lib/db';
@@ -7,7 +8,20 @@ import { getPrice } from '@/lib/market-engine';
 import { MarketDetailClient } from './client';
 import { T } from '@/components/i18n-text';
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 15;
+
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  const { id } = await params;
+  const [market] = await db.select().from(markets).where(eq(markets.id, id));
+  if (!market) return { title: 'Market Not Found' };
+  const price = getPrice(Number(market.yesShares), Number(market.noShares), Number(market.liquidityParam));
+  const yesPercent = Math.round(price.yes * 100);
+  return {
+    title: `${market.question} | NewsPredict`,
+    description: `YES ${yesPercent}% — ${market.resolutionCriteria}`,
+    openGraph: { title: market.question, description: `YES ${yesPercent}% | NO ${100 - yesPercent}%` },
+  };
+}
 
 export default async function MarketDetailPage({
   params,

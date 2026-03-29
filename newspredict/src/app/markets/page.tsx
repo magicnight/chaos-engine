@@ -6,7 +6,7 @@ import { getPrice } from '@/lib/market-engine';
 import { T } from '@/components/i18n-text';
 import { getCategoryImage } from '@/lib/category-image';
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 15;
 
 function formatVolume(v: number): string {
   if (v >= 1_000_000) return `$${(v / 1_000_000).toFixed(1)}M`;
