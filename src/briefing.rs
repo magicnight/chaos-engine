@@ -249,6 +249,11 @@ pub async fn full_sweep(
         }
     }
 
+    // 4b. Prune old data (keep last 500 sweeps ≈ 5 days at 15-min intervals)
+    if let Err(e) = store.prune_old_sweeps(500) {
+        tracing::warn!(error = %e, "Failed to prune old sweeps");
+    }
+
     // 5. Compute delta
     let previous = store
         .get_sweep_data(sweep_id - 1)

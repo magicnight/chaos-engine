@@ -44,8 +44,17 @@ impl RateLimiter {
     }
 
     fn check(&self, key: &str) -> bool {
-        let mut map = self.requests.lock().unwrap();
+        let mut map = self.requests.lock().unwrap_or_else(|e| e.into_inner());
         let now = Instant::now();
+
+        // Evict stale keys every 100 checks (amortized cleanup)
+        if map.len() > 1000 {
+            map.retain(|_, v: &mut Vec<Instant>| {
+                v.retain(|t| now.duration_since(*t).as_secs() < 60);
+                !v.is_empty()
+            });
+        }
+
         let entries = map.entry(key.to_string()).or_default();
         entries.retain(|t| now.duration_since(*t).as_secs() < 60);
         if entries.len() >= self.max_per_minute {
@@ -80,7 +89,7 @@ pub struct AppState {
 }
 
 /// Build the Axum router with all API routes.
-pub fn create_router(state: Arc<AppState>, _public_mode: bool, _api_key: Option<String>) -> Router {
+pub fn create_router(state: Arc<AppState>, public_mode: bool, _api_key: Option<String>) -> Router {
     // Open routes (no auth required even in public mode)
     let open_routes = Router::new()
         .route("/", get(index_handler))
@@ -103,7 +112,23 @@ pub fn create_router(state: Arc<AppState>, _public_mode: bool, _api_key: Option<
     // so we just merge. In local mode, check_auth() is a no-op (api_key is None).
     let app = open_routes.merge(extended_routes);
 
-    app.with_state(state).layer(CorsLayer::permissive())
+    let cors = if public_mode {
+        CorsLayer::new()
+            .allow_origin(tower_http::cors::Any)
+            .allow_methods([
+                axum::http::Method::GET,
+                axum::http::Method::POST,
+                axum::http::Method::OPTIONS,
+            ])
+            .allow_headers([
+                axum::http::header::CONTENT_TYPE,
+                axum::http::header::HeaderName::from_static("x-chaos-key"),
+            ])
+    } else {
+        CorsLayer::permissive()
+    };
+
+    app.with_state(state).layer(cors)
 }
 
 // ---------------------------------------------------------------------------
@@ -347,7 +372,8 @@ fn check_auth(state: &AppState, headers: &HeaderMap) -> Result<(), (StatusCode, 
                 .get("X-CHAOS-Key")
                 .and_then(|v| v.to_str().ok())
                 .unwrap_or("");
-            if provided == key {
+            // Constant-time comparison to prevent timing attacks
+            if provided.len() == key.len() && provided.bytes().zip(key.bytes()).fold(0u8, |acc, (a, b)| acc | (a ^ b)) == 0 {
                 Ok(())
             } else {
                 Err((

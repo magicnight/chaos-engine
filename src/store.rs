@@ -74,9 +74,32 @@ impl Store {
         }
 
         let conn = Connection::open(path)?;
+        conn.execute_batch(
+            "PRAGMA journal_mode=WAL;
+             PRAGMA busy_timeout=5000;
+             PRAGMA synchronous=NORMAL;
+             PRAGMA cache_size=-8000;"
+        )?;
         conn.execute_batch(SCHEMA)?;
 
         Ok(Store { conn })
+    }
+
+    /// Remove old sweeps keeping only the most recent `keep` entries.
+    pub fn prune_old_sweeps(&self, keep: usize) -> anyhow::Result<usize> {
+        let deleted: usize = self.conn.execute(
+            "DELETE FROM sweeps WHERE id NOT IN (SELECT id FROM sweeps ORDER BY id DESC LIMIT ?1)",
+            rusqlite::params![keep],
+        )?;
+        let _ = self.conn.execute(
+            "DELETE FROM source_health WHERE sweep_id NOT IN (SELECT id FROM sweeps)",
+            [],
+        );
+        let _ = self.conn.execute(
+            "DELETE FROM analyses WHERE sweep_id NOT IN (SELECT id FROM sweeps)",
+            [],
+        );
+        Ok(deleted)
     }
 
     /// Save a completed sweep and return its row id.
