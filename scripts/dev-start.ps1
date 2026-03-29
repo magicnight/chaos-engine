@@ -14,10 +14,9 @@ $COMPOSE = $null
 if (Get-Command "podman-compose" -ErrorAction SilentlyContinue) {
     $COMPOSE = "podman-compose"
 } elseif (Get-Command "python" -ErrorAction SilentlyContinue) {
-    # Check if podman_compose module exists
     $check = python -c "import podman_compose" 2>&1
     if ($LASTEXITCODE -eq 0) {
-        $COMPOSE = "python -m podman_compose"
+        $COMPOSE = "python -W ignore::DeprecationWarning -m podman_compose"
     }
 }
 if (-not $COMPOSE) {
@@ -115,7 +114,7 @@ Info "Seeding initial markets from CHAOS..."
 $cronSecret = (Select-String -Path ".env" -Pattern "^CRON_SECRET=(.*)" | ForEach-Object { $_.Matches.Groups[1].Value })
 if (-not $cronSecret) { $cronSecret = "chaos-cron-dev-secret" }
 try {
-    Invoke-RestMethod -Uri "http://localhost:8080/api/market-seeds" -Headers @{"x-cron-secret"=$cronSecret} -ErrorAction SilentlyContinue | Out-Null
+    Invoke-RestMethod -Uri "http://localhost:3000/api/market-seeds" -Headers @{"x-cron-secret"=$cronSecret} -ErrorAction SilentlyContinue | Out-Null
 } catch {}
 
 # --- Status ---
@@ -124,9 +123,12 @@ Ok "========================================="
 Ok "  CHAOS Engine + NewsPredict is running!"
 Ok "========================================="
 Write-Host ""
-Write-Host "  App:       " -NoNewline -ForegroundColor Cyan; Write-Host "http://localhost:8080"
-Write-Host "  Dashboard: " -NoNewline -ForegroundColor Cyan; Write-Host "http://localhost:8080/api/v1/health"
-Write-Host "  API:       " -NoNewline -ForegroundColor Cyan; Write-Host "http://localhost:8080/api/v1/data"
+Write-Host "  NewsPredict:  " -NoNewline -ForegroundColor Cyan; Write-Host "http://localhost:3000"
+Write-Host "  CHAOS API:    " -NoNewline -ForegroundColor Cyan; Write-Host "http://localhost:3117/api/v1/health"
+Write-Host "  Dashboard:    " -NoNewline -ForegroundColor Cyan; Write-Host "http://localhost:3117"
+Write-Host ""
+Write-Host "  Reverse proxy (external):" -ForegroundColor Cyan
+Write-Host "    Configure Caddy/Nginx to proxy :80/:443 to these ports"
 Write-Host ""
 Write-Host "  Commands:" -ForegroundColor Cyan
 Write-Host "    $COMPOSE -f docker-compose.dev.yml logs -f    # View logs"

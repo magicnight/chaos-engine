@@ -4,8 +4,8 @@
 #
 # Prerequisites:
 #   - Docker & Docker Compose V2 installed
-#   - Ports 80 and 443 open
-#   - .env configured with production values (DOMAIN, secrets, API keys)
+#   - .env configured with production values (secrets, API keys)
+#   - Caddy/Nginx configured separately as reverse proxy
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -28,7 +28,7 @@ fi
 # --- .env validation ---
 if [ ! -f .env ]; then
   err ".env not found! Copy .env.example to .env and configure production values."
-  err "Required: DOMAIN, NEXTAUTH_SECRET, CRON_SECRET, POSTGRES_PASSWORD"
+  err "Required: NEXTAUTH_SECRET, CRON_SECRET, POSTGRES_PASSWORD"
   exit 1
 fi
 
@@ -46,20 +46,6 @@ if [ -n "$MISSING" ]; then
   exit 1
 fi
 
-# Check DOMAIN
-DOMAIN=$(grep "^DOMAIN=" .env 2>/dev/null | cut -d= -f2 || echo "")
-if [ -z "$DOMAIN" ]; then
-  warn "DOMAIN not set in .env — Caddy will serve HTTP on port 80 only (no HTTPS)"
-  warn "Set DOMAIN=yourdomain.com for auto Let's Encrypt HTTPS"
-fi
-
-# Check NEXTAUTH_URL matches DOMAIN
-NEXTAUTH_URL=$(grep "^NEXTAUTH_URL=" .env 2>/dev/null | cut -d= -f2 || echo "")
-if [ -n "$DOMAIN" ] && [ -z "$NEXTAUTH_URL" ]; then
-  warn "NEXTAUTH_URL not set — adding https://${DOMAIN}"
-  echo "NEXTAUTH_URL=https://${DOMAIN}" >> .env
-fi
-
 # --- Build & Deploy ---
 BUILD_FLAG=""
 if [ "${1:-}" = "--rebuild" ]; then
@@ -68,7 +54,7 @@ if [ "${1:-}" = "--rebuild" ]; then
 fi
 
 info "Pulling base images..."
-docker compose -f docker-compose.prod.yml pull caddy postgres 2>/dev/null || true
+docker compose -f docker-compose.prod.yml pull postgres 2>/dev/null || true
 
 info "Building and starting services..."
 docker compose -f docker-compose.prod.yml up -d $BUILD_FLAG
@@ -109,21 +95,16 @@ done
 # --- Seed markets ---
 info "Seeding markets from CHAOS data..."
 CRON_SECRET=$(grep '^CRON_SECRET=' .env | cut -d= -f2)
-if [ -n "$DOMAIN" ]; then
-  URL="https://${DOMAIN}"
-else
-  URL="http://localhost"
-fi
-curl -sf -H "x-cron-secret: ${CRON_SECRET}" "${URL}/api/market-seeds" >/dev/null 2>&1 || true
+curl -sf -H "x-cron-secret: ${CRON_SECRET}" http://localhost:3000/api/market-seeds >/dev/null 2>&1 || true
 
 # --- Health check ---
 info "Running final health check..."
 sleep 3
 SERVICES_UP=$(docker compose -f docker-compose.prod.yml ps --format "{{.Name}}" --filter "status=running" | wc -l)
-if [ "$SERVICES_UP" -ge 4 ]; then
-  ok "All 4 services running"
+if [ "$SERVICES_UP" -ge 3 ]; then
+  ok "All 3 services running"
 else
-  warn "Only ${SERVICES_UP}/4 services running"
+  warn "Only ${SERVICES_UP}/3 services running"
   docker compose -f docker-compose.prod.yml ps
 fi
 
@@ -132,11 +113,16 @@ ok "============================================"
 ok "  Production deployment complete!"
 ok "============================================"
 echo ""
-if [ -n "$DOMAIN" ]; then
-  echo -e "  ${CYAN}URL:${NC}  https://${DOMAIN}"
-else
-  echo -e "  ${CYAN}URL:${NC}  http://<server-ip>"
-fi
+echo -e "  ${CYAN}NewsPredict:${NC}  http://localhost:3000"
+echo -e "  ${CYAN}CHAOS API:${NC}    http://localhost:3117"
+echo ""
+echo -e "  ${CYAN}Reverse proxy:${NC}"
+echo "    Configure Caddy/Nginx externally to proxy your domain to these ports"
+echo "    Example Caddyfile:"
+echo "      yourdomain.com {"
+echo "        handle /api/v1/* { reverse_proxy localhost:3117 }"
+echo "        handle * { reverse_proxy localhost:3000 }"
+echo "      }"
 echo ""
 echo -e "  ${CYAN}Commands:${NC}"
 echo "    docker compose -f docker-compose.prod.yml logs -f     # View logs"

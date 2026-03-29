@@ -23,7 +23,6 @@ fi
 if [ ! -f .env ]; then
   info "Creating .env from .env.example..."
   cp .env.example .env
-  # Generate random secrets for dev
   RAND_SECRET=$(openssl rand -hex 16 2>/dev/null || head -c 32 /dev/urandom | base64 | tr -d '/+=' | head -c 32)
   sed -i.bak "s/^NEXTAUTH_SECRET=.*/NEXTAUTH_SECRET=${RAND_SECRET}/" .env
   RAND_CRON=$(openssl rand -hex 8 2>/dev/null || head -c 16 /dev/urandom | base64 | tr -d '/+=' | head -c 16)
@@ -81,7 +80,7 @@ done
 # --- Seed markets ---
 info "Seeding initial markets from CHAOS..."
 CRON_SECRET=$(grep '^CRON_SECRET=' .env 2>/dev/null | cut -d= -f2 || echo "chaos-cron-dev-secret")
-curl -s -H "x-cron-secret: ${CRON_SECRET}" http://localhost:8080/api/market-seeds >/dev/null 2>&1 || true
+curl -s -H "x-cron-secret: ${CRON_SECRET}" http://localhost:3000/api/market-seeds >/dev/null 2>&1 || true
 
 # --- Status ---
 echo ""
@@ -89,9 +88,12 @@ ok "========================================="
 ok "  CHAOS Engine + NewsPredict is running!"
 ok "========================================="
 echo ""
-echo -e "  ${CYAN}App:${NC}       http://localhost:8080"
-echo -e "  ${CYAN}Dashboard:${NC} http://localhost:8080/api/v1/health"
-echo -e "  ${CYAN}API:${NC}       http://localhost:8080/api/v1/data"
+echo -e "  ${CYAN}NewsPredict:${NC}  http://localhost:3000"
+echo -e "  ${CYAN}CHAOS API:${NC}    http://localhost:3117/api/v1/health"
+echo -e "  ${CYAN}Dashboard:${NC}    http://localhost:3117"
+echo ""
+echo -e "  ${CYAN}Reverse proxy (external):${NC}"
+echo "    Configure Caddy/Nginx to proxy :80/:443 to these ports"
 echo ""
 echo -e "  ${CYAN}Commands:${NC}"
 echo "    docker compose -f docker-compose.dev.yml logs -f    # View logs"
