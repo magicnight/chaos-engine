@@ -149,8 +149,8 @@ export function OrderPanel({ marketId, yesPrice, noPrice, onchainMarketId, onTra
 
       {isOnchain && (
         <div className="flex items-center justify-between mb-3 px-1">
-          <span className="text-xs text-[var(--muted)]">{t('order.cruxBalance')}</span>
-          <span className="text-xs font-mono text-[var(--foreground)]">{formattedCruxBalance} CRUX</span>
+          <span className="text-xs text-[var(--muted)]">{t('order.chaosBalance')}</span>
+          <span className="text-xs font-mono text-[var(--foreground)]">{formattedCruxBalance} CHAOS</span>
         </div>
       )}
 
@@ -181,7 +181,7 @@ export function OrderPanel({ marketId, yesPrice, noPrice, onchainMarketId, onTra
 
       <div className="mb-4">
         <label className="text-xs text-[var(--muted)] mb-1 block">
-          {t('order.amount')} {isOnchain ? '(CRUX)' : '($)'}
+          {t('order.amount')} {isOnchain ? '(CHAOS)' : '($)'}
         </label>
         <input
           type="number"
