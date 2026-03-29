@@ -19,9 +19,9 @@
 
 [![Rust](https://img.shields.io/badge/rust-stable-orange)](https://www.rust-lang.org/)
 [![License: AGPL v3](https://img.shields.io/badge/license-AGPLv3-blue.svg)](LICENSE)
-[![Sources](https://img.shields.io/badge/OSINT%20sources-44-cyan)](#data-sources-44)
+[![Sources](https://img.shields.io/badge/OSINT%20sources-46-cyan)](#data-sources-46)
 [![LLM](https://img.shields.io/badge/LLM-multi--provider-green)](#ai-analysis)
-[![Docker](https://img.shields.io/badge/docker-ready-2496ED)](#docker)
+[![Docker](https://img.shields.io/badge/docker-ready-2496ED)](#deployment)
 
 </div>
 
@@ -29,11 +29,13 @@
 
 ## What is CHAOS?
 
-CHAOS pulls from **44 open-source intelligence feeds** in parallel -- satellite fire detection, flight tracking, radiation monitoring, earthquake data, economic indicators, conflict events, cyber vulnerabilities, sanctions lists, disease outbreaks, social sentiment, and more -- then synthesizes everything into a single actionable picture updated every 15 minutes.
+CHAOS pulls from **46 open-source intelligence feeds** in parallel -- satellite fire detection, flight tracking, radiation monitoring, earthquake data, economic indicators, conflict events, cyber vulnerabilities, sanctions lists, disease outbreaks, social sentiment, and more -- then synthesizes everything into a single actionable picture updated every 15 minutes.
 
 Connect an LLM and it becomes a **multilingual intelligence analyst** generating structured briefings in English, Chinese, Japanese, or Spanish, with cross-domain correlation detection and anomaly flagging. Alerts push to Telegram and Discord bots with three-tier severity classification (FLASH / PRIORITY / ROUTINE), and the bots accept commands back -- sweep on demand, request a briefing, check system status, all from your phone.
 
-Everything renders on a self-contained **Jarvis-style dashboard** with a 3D globe, draggable Gridstack panels, real-time SSE updates, and full API access for downstream consumers. Single binary. Embedded SQLite. Zero cloud dependency. Zero telemetry. Zero subscriptions.
+Everything renders on a self-contained **Jarvis-style dashboard** with a 3D globe, draggable Gridstack panels, 15 live news streams, real-time SSE updates, and full API access for downstream consumers. Single binary. Embedded SQLite. Zero cloud dependency. Zero telemetry. Zero subscriptions.
+
+The companion **NewsPredict prediction market** adds a notification center, achievement badges, copy-trading, market sentiment analysis, Sentry error monitoring, and API rate limiting.
 
 ![CHAOS MONITOR](docs/dashboard.png)
 
@@ -70,34 +72,35 @@ Visit `http://localhost:8080`
 
 ## Features
 
-### Intelligence Collection (44 Sources)
+### Intelligence Collection (46 Sources)
 
-All sources run in parallel via `tokio::join_all` with per-source timeouts. 20+ sources work with **zero API keys**.
+All sources run in parallel via `tokio::join_all` with per-tier timeouts (T1: 30s, T2: 24s, T3: 15s). 20+ sources work with **zero API keys**.
 
 | Tier | Focus | Count | Sources |
 |------|-------|------:|---------|
 | **T1** Core OSINT | Conflict, disasters, health, transport | 16 | ACLED, ADS-B, FIRMS, GDACS, GDELT, OpenSky, ProMED-mail, ReliefWeb, Safecast, Sanctions (OFAC+OpenSanctions), Ships, SWPC, Telegram, Tsunami, USGS, WHO |
-| **T2** Economic | Markets, trade, fiscal | 10 | BLS, CoinGecko, Comtrade, ECB, EIA, FRED, GSCPI, Treasury, USAspending, WorldNews |
-| **T3** Supplementary | Cyber, environment, social, tech | 15 | Bluesky, CISA-KEV, Cloudflare Radar, Copernicus, CVE/NVD, EPA RadNet, EU Sanctions, Google Trends, ISC/SANS, KiwiSDR, NASA NEO, NOAA, NTSB, Patents, Reddit, RIPE Atlas |
+| **T2** Economic | Markets, trade, fiscal | 11 | BLS, CoinGecko, Comtrade, ECB, EIA, ExchangeRates, FRED, GSCPI, Treasury, USAspending, WorldNews |
+| **T3** Supplementary | Cyber, environment, social, tech | 16 | Bluesky, CISA-KEV, Cloudflare Radar, Copernicus, CVE/NVD, EPA RadNet, EU Sanctions, Google Trends, ISC/SANS, KiwiSDR, NASA NEO, NOAA, NTSB, Patents, Reddit, RIPE Atlas, TechStatus |
 | **T4** Space | Orbital tracking | 1 | CelesTrak |
 | **T5** Markets | Live quotes | 1 | Yahoo Finance |
 
 ### AI Analysis
 
-- **LLM fallback chain**: primary provider -> fallback provider -> Ollama local (automatic failover)
+- **LLM fallback chain**: primary provider -> fallback provider -> Ollama local (automatic failover, 60s timeout)
 - **10 provider backends**: OpenAI, Anthropic, Gemini, Ollama, DeepSeek, Moonshot, OpenRouter, Mistral, MiniMax, ZhipuAI
 - **4-language analysis**: `--lang en|zh|ja|es` -- full military-style briefing prompts in each language
 - **Structured output**: Situation Overview, Key Developments, Risk Matrix, Actionable Intelligence, Cross-Domain Correlations
-- **Market prediction seeds**: LLM-generated or rule-based prediction market questions
+- **Market prediction seeds**: 17 rules + LLM generation + 7 template fallbacks, guaranteeing >=5 seeds per sweep
 
 ### CHAOS MONITOR Dashboard
 
 - **22 draggable panels** organized into 9 categories, all toggleable in Settings
 - **Gridstack.js** panel system with drag, resize, and layout persistence (localStorage)
 - **3D globe** with real-time event plotting (quakes, fires, conflicts, weather)
+- **15 live news streams**: Bloomberg, Al Jazeera, France 24, DW, Sky News, CNBC, NHK, CCTV4, Phoenix TV, and more via embedded YouTube live
 - **Server-Sent Events** for live data streaming
 - **Rate-limited public API** mode with API key authentication
-- **Embedded in binary** via `include_str!` -- no external static files needed
+- **tower-http static file serving**: standalone `static/` directory with `ServeDir` dynamic loading
 
 | Category | Panels |
 |----------|--------|
@@ -110,6 +113,16 @@ All sources run in parallel via `tokio::join_all` with per-source timeouts. 20+ 
 | Space | Space Watch, NEO Tracker |
 | System | Source Health, Delta / Changes |
 | AI | AI Intelligence Brief, Cross-Source Signals |
+
+### NewsPredict Prediction Market
+
+- **Notification center**: trade confirmations, market settlements, achievement unlocks, copy-trade alerts -- viewable on profile page
+- **Achievement badges**: auto-unlocked based on trading behavior (first trade, win streaks, copy-trading, etc.)
+- **Copy-trading**: follow top traders and automatically mirror their trades with configurable per-trade limits
+- **Market sentiment analysis**: auto-computed bullish/bearish/neutral sentiment from comments, displayed as sentiment badges with confidence scores
+- **SSE real-time updates**: live price and market data via CHAOS Engine SSE feed
+- **API rate limiting**: comments, trades, and other endpoints protected by rate limiting
+- **Sentry error monitoring**: @sentry/nextjs integration for production error tracking
 
 ### Multi-Tier Alerts
 
@@ -139,7 +152,7 @@ All sources run in parallel via `tokio::join_all` with per-source timeouts. 20+ 
 | Command | Description |
 |---------|-------------|
 | `chaos status` | Engine status, config, source availability, LLM connection |
-| `chaos sweep` | Run full intelligence sweep across all 44 sources |
+| `chaos sweep` | Run full intelligence sweep across all 46 sources |
 | `chaos sweep --json` | JSON output for piping to other tools |
 | `chaos sweep --lang zh` | Sweep with Chinese-language LLM analysis |
 | `chaos sweep --no-llm` | Skip LLM analysis even if configured |
@@ -168,11 +181,11 @@ The CHAOS Engine core is written entirely in Rust. For an intelligence system th
 | Advantage | What it means for CHAOS |
 |-----------|------------------------|
 | **Zero-cost concurrency** | `tokio` async runtime + `join_all` parallel collection across 46 sources. A single thread handles thousands of concurrent connections with no GC pauses |
-| **Memory safety without GC** | Ownership system eliminates data races and memory leaks at compile time. Runs 24/7 with zero crashes — no Go-style GC latency or Python-style memory bloat |
+| **Memory safety without GC** | Ownership system eliminates data races and memory leaks at compile time. Runs 24/7 with zero crashes -- no Go-style GC latency or Python-style memory bloat |
 | **Single binary** | `cargo build --release` produces one ~15MB static binary containing the web server, dashboard, SQLite, and all 46 source parsers. No runtime dependencies. Container image is ~30MB |
 | **C/C++ performance** | JSON parsing (serde), regex matching, and data aggregation run at C speed. CPU usage is near-zero while waiting for LLM responses |
 | **Type system as documentation** | Every data source response is strongly typed at compile time. `enum` + `match` exhaustiveness ensures no branch is missed |
-| **Cargo ecosystem** | axum (web), rusqlite (SQLite), reqwest (HTTP), tokio (async) — mature, production-grade libraries with no left-pad-style supply chain risk |
+| **Cargo ecosystem** | axum (web), rusqlite (SQLite), reqwest (HTTP), tokio (async) -- mature, production-grade libraries with no left-pad-style supply chain risk |
 | **Cross-platform** | Same codebase compiles to Linux / macOS / Windows / ARM. Runs on a Raspberry Pi |
 
 **Compared to alternatives:**
@@ -196,13 +209,13 @@ Rust's trade-off is a steeper learning curve and longer compile times, but for a
               ┌────────────────────────┼────────────────────────┐
               │                        │                        │
      ┌────────▼────────┐    ┌─────────▼─────────┐   ┌─────────▼─────────┐
-     │   44 Sources     │    │   LLM Fallback    │   │   Dashboard       │
-     │  (async parallel)│    │   Chain            │   │   (Axum + SSE)    │
+     │   46 Sources     │    │   LLM Fallback    │   │   Dashboard       │
+     │  (async parallel)│    │   Chain            │   │  (Axum+tower-http)│
      │                  │    │                    │   │                   │
      │  T1: Core OSINT  │    │  OpenAI-compat     │   │  Gridstack panels │
      │  T2: Economic    │    │  Anthropic         │   │  3D Globe         │
      │  T3: Supplement  │    │  Gemini            │   │  Real-time SSE    │
-     │  T4: Space       │    │  Ollama (local)    │   │  Rate-limited API │
+     │  T4: Space       │    │  Ollama (local)    │   │  ServeDir static  │
      │  T5: Markets     │    └─────────┬─────────┘   └─────────┬─────────┘
      └────────┬────────┘              │                        │
               │                        │                        │
@@ -225,18 +238,25 @@ Rust's trade-off is a steeper learning curve and longer compile times, but for a
      │  Commands + Push │    │  Rich embeds       │   │  Win/Mac/Linux    │
      │  FLASH/PRI/RTN   │    │  Color-coded tiers │   │  Slack/Feishu     │
      └─────────────────┘    └───────────────────┘   └───────────────────┘
+
+              ┌─────────────────────────────────────────────────┐
+              │        NewsPredict Prediction Market (Next.js)  │
+              │  LMSR ─ Notifications ─ Achievements ─ Copy-Trade│
+              │  Sentiment ─ SSE Real-time ─ Sentry ─ Web3 (BSC)│
+              │  PostgreSQL 18 ─ Drizzle ORM ─ Rate Limiting    │
+              └─────────────────────────────────────────────────┘
 ```
 
 **Key modules:**
 
 | Module | Path | Purpose |
 |--------|------|---------|
-| Sources | `src/sources/` | 44 intelligence source adapters (trait `IntelSource`) |
+| Sources | `src/sources/` | 46 intelligence source adapters (trait `IntelSource`) |
 | LLM | `src/llm/` | Multi-provider LLM with fallback chain |
 | Delta | `src/delta/` | Change detection, severity scoring, anomaly detection |
 | Correlation | `src/correlation.rs` | 6 cross-source pattern detection rules |
 | Briefing | `src/briefing.rs` | Sweep orchestration, LLM prompt templates (4 languages) |
-| Dashboard | `src/dashboard/` | Axum web server, SSE, rate limiting, public API |
+| Dashboard | `src/dashboard/` | Axum web server, SSE, tower-http static serving, rate limiting, public API |
 | Bot | `src/bot/` | Telegram + Discord bots with tiered alerting |
 | Store | `src/store.rs` | SQLite persistence (rusqlite, bundled) |
 | Logging | `src/logging.rs` | Structured logging (tracing crate, JSON or compact) |
@@ -248,46 +268,46 @@ Rust's trade-off is a steeper learning curve and longer compile times, but for a
 All configuration is via environment variables. Copy `.env.example` to `.env` and edit as needed.
 
 ```bash
-# ── Core ────────────────────────────────────────
+# -- Core ------------------------------------------------
 REFRESH_INTERVAL_MINUTES=15       # Sweep interval
 SOURCE_TIMEOUT_SECS=30            # Per-source timeout
 
-# ── LLM (primary) ──────────────────────────────
+# -- LLM (primary) ---------------------------------------
 LLM_PROVIDER=zhipuai              # openai|anthropic|gemini|ollama|deepseek|zhipuai|...
 LLM_API_KEY=your-key
 DEFAULT_MODEL=glm-4-flash
 SWEEP_LANG=en                     # en|zh|ja|es
 
-# ── LLM (fallback) ─────────────────────────────
+# -- LLM (fallback) --------------------------------------
 FALLBACK_PROVIDER=gemini
 FALLBACK_MODEL=gemini-3.1-flash-lite-preview
 GEMINI_API_KEY=your-key
 
-# ── LLM (local fallback) ───────────────────────
+# -- LLM (local fallback) --------------------------------
 OLLAMA_URL=http://localhost:11434
 OLLAMA_MODEL=qwen3:8b
 
-# ── Data Source Keys (optional) ─────────────────
+# -- Data Source Keys (optional) --------------------------
 FRED_API_KEY=                     # fred.stlouisfed.org
 FIRMS_MAP_KEY=                    # firms.modaps.eosdis.nasa.gov
 EIA_API_KEY=DEMO_KEY              # api.eia.gov
 WORLDNEWS_API_KEY=                # worldnewsapi.com
 
-# ── Telegram Bot ────────────────────────────────
+# -- Telegram Bot -----------------------------------------
 TELEGRAM_BOT_TOKEN=
 TELEGRAM_CHAT_ID=
 TELEGRAM_POLL_INTERVAL=5000
 
-# ── Discord Bot ─────────────────────────────────
+# -- Discord Bot ------------------------------------------
 DISCORD_BOT_TOKEN=
 DISCORD_CHANNEL_ID=
 DISCORD_GUILD_ID=
 DISCORD_WEBHOOK_URL=              # Alternative: webhook-only mode
 
-# ── Notifications ───────────────────────────────
+# -- Notifications ----------------------------------------
 WEBHOOK_URL=                      # Generic webhook (Slack/Discord/Feishu)
 
-# ── Watchlist ───────────────────────────────────
+# -- Watchlist --------------------------------------------
 WATCH_REGIONS=Taiwan,Ukraine,Iran
 ALERT_KEYWORDS=nuclear,pandemic,coup
 WATCH_TICKERS=SPY,BTC-USD,GC=F
@@ -295,7 +315,7 @@ WATCH_TICKERS=SPY,BTC-USD,GC=F
 
 ---
 
-## Data Sources (44)
+## Data Sources (46)
 
 | # | Source | Tier | Auth | Description |
 |--:|--------|:----:|:----:|-------------|
@@ -320,29 +340,31 @@ WATCH_TICKERS=SPY,BTC-USD,GC=F
 | 19 | Comtrade | T2 | Free | UN strategic commodity trade flows |
 | 20 | ECB | T2 | Free | European Central Bank exchange rates and EURIBOR |
 | 21 | EIA | T2 | Key | US Energy Information Administration |
-| 22 | FRED | T2 | Key | Federal Reserve Economic Data |
-| 23 | GSCPI | T2 | Free | NY Fed Global Supply Chain Pressure Index |
-| 24 | Treasury | T2 | Free | US Treasury fiscal data -- debt and rates |
-| 25 | USAspending | T2 | Free | Federal spending and defense contracts |
-| 26 | WorldNews | T2 | Key | World News API -- global news with sentiment |
-| 27 | Bluesky | T3 | Free | Social sentiment intelligence |
-| 28 | CISA-KEV | T3 | Free | Known Exploited Vulnerabilities catalog |
-| 29 | Cloudflare Radar | T3 | Free | Internet traffic anomalies |
-| 30 | Copernicus | T3 | Free | Climate Change Service monthly bulletin |
-| 31 | CVE/NVD | T3 | Free | Vulnerability intelligence |
-| 32 | EPA RadNet | T3 | Free | Radiation monitoring network |
-| 33 | EU Sanctions | T3 | Free | EU consolidated sanctions list |
-| 34 | Google Trends | T3 | Free | Daily trending searches (US) |
-| 35 | ISC/SANS | T3 | Free | Internet Storm Center threat level |
-| 36 | KiwiSDR | T3 | Free | Global HF radio receiver network |
-| 37 | NASA NEO | T3 | Free | Near Earth Object close approach tracking |
-| 38 | NOAA | T3 | Free | NWS severe weather alerts |
-| 39 | NTSB | T3 | Free | Aviation safety incident reports |
-| 40 | Patents | T3 | Free | USPTO filings in strategic technology areas |
-| 41 | Reddit | T3 | Free | Social sentiment monitoring |
-| 42 | RIPE Atlas | T3 | Free | Global internet measurement network |
-| 43 | CelesTrak | T4 | Free | Satellite orbit tracking and launch monitoring |
-| 44 | YFinance | T5 | Free | Yahoo Finance live market quotes |
+| 22 | ExchangeRates | T2 | Free | Foreign exchange rate data |
+| 23 | FRED | T2 | Key | Federal Reserve Economic Data |
+| 24 | GSCPI | T2 | Free | NY Fed Global Supply Chain Pressure Index |
+| 25 | Treasury | T2 | Free | US Treasury fiscal data -- debt and rates |
+| 26 | USAspending | T2 | Free | Federal spending and defense contracts |
+| 27 | WorldNews | T2 | Key | World News API -- global news with sentiment |
+| 28 | Bluesky | T3 | Free | Social sentiment intelligence |
+| 29 | CISA-KEV | T3 | Free | Known Exploited Vulnerabilities catalog |
+| 30 | Cloudflare Radar | T3 | Free | Internet traffic anomalies |
+| 31 | Copernicus | T3 | Free | Climate Change Service monthly bulletin |
+| 32 | CVE/NVD | T3 | Free | Vulnerability intelligence |
+| 33 | EPA RadNet | T3 | Free | Radiation monitoring network |
+| 34 | EU Sanctions | T3 | Free | EU consolidated sanctions list |
+| 35 | Google Trends | T3 | Free | Daily trending searches (US) |
+| 36 | ISC/SANS | T3 | Free | Internet Storm Center threat level |
+| 37 | KiwiSDR | T3 | Free | Global HF radio receiver network |
+| 38 | NASA NEO | T3 | Free | Near Earth Object close approach tracking |
+| 39 | NOAA | T3 | Free | NWS severe weather alerts |
+| 40 | NTSB | T3 | Free | Aviation safety incident reports |
+| 41 | Patents | T3 | Free | USPTO filings in strategic technology areas |
+| 42 | Reddit | T3 | Free | Social sentiment monitoring |
+| 43 | RIPE Atlas | T3 | Free | Global internet measurement network |
+| 44 | TechStatus | T3 | Free | Major tech service status monitoring |
+| 45 | CelesTrak | T4 | Free | Satellite orbit tracking and launch monitoring |
+| 46 | YFinance | T5 | Free | Yahoo Finance live market quotes |
 
 **Auth legend**: Free = no API key required. Key = optional API key for higher limits or full access.
 
@@ -384,7 +406,7 @@ The dashboard exposes a RESTful API with SSE streaming. In public mode (`--publi
 | `/api/v1/query` | POST | Public | Query historical data with filters |
 | `/api/v1/resolve-check` | POST | Public | Check condition against current data |
 
-Full specification: [`docs/api.md`](docs/api.md) | [`docs/openapi.yaml`](docs/openapi.yaml)
+Full OpenAPI specifications: [`docs/api/chaos-engine-openapi.yaml`](docs/api/chaos-engine-openapi.yaml) | [`docs/api/newspredict-openapi.yaml`](docs/api/newspredict-openapi.yaml)
 
 ---
 
@@ -392,7 +414,7 @@ Full specification: [`docs/api.md`](docs/api.md) | [`docs/openapi.yaml`](docs/op
 
 ### Production (Linux Server)
 
-Full-stack deployment: CHAOS Engine + NewsPredict + PostgreSQL + Caddy reverse proxy.
+Full-stack deployment: CHAOS Engine + NewsPredict + PostgreSQL 18. Caddy/Nginx reverse proxy must be **configured separately** (not in containers).
 
 ```bash
 git clone https://github.com/magicnight/chaos-engine.git && cd chaos-engine
@@ -410,16 +432,25 @@ CRON_SECRET=$(openssl rand -hex 16)
 POSTGRES_PASSWORD=$(openssl rand -hex 16)
 ```
 
-This starts 4 services:
+This starts 3 container services (Caddy runs externally):
 
 ```
-Internet → Caddy (:80/:443, auto HTTPS)
-             ├─ /api/v1/*  → CHAOS Engine (:3117)
-             └─ /*         → NewsPredict (:3000)
-                                └─ PostgreSQL (:5432)
+Internet -> Caddy (external, :80/:443, auto HTTPS)
+              |-- /api/v1/*  -> CHAOS Engine (:3117)
+              +-- /*         -> NewsPredict (:3000)
+                                   +-- PostgreSQL 18 (:5432)
 ```
 
-**Without a domain**: Leave `DOMAIN` empty — accessible via `http://server-ip`.
+**Without a domain**: Leave `DOMAIN` empty -- accessible via `http://server-ip`.
+
+### Ops Scripts
+
+| Script | Description |
+|--------|-------------|
+| `scripts/deploy.sh` | Production one-click deploy (build, migrate, health check, seed) |
+| `scripts/dev-start.sh` / `dev-start.ps1` | Development environment one-click start |
+| `scripts/backup.sh` | Database backup |
+| `scripts/update-live-ids.sh` | Update YouTube live stream IDs (15 news channels) |
 
 ### Development Environment
 
@@ -446,11 +477,11 @@ Copy `.env.example` to `.env` and configure. All variables are optional unless n
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `DOMAIN` | *(empty)* | Your domain for auto HTTPS (e.g. `chaos.example.com`) |
-| `POSTGRES_PASSWORD` | `chaos_secret` | PostgreSQL password — **change in production** |
+| `POSTGRES_PASSWORD` | `chaos_secret` | PostgreSQL password -- **change in production** |
 | `REFRESH_INTERVAL_MINUTES` | `15` | OSINT sweep interval |
 | `SOURCE_TIMEOUT_SECS` | `30` | Per-source timeout (T1: 100%, T2: 80%, T3: 50%) |
 
-#### LLM (optional — enables AI analysis and richer market seeds)
+#### LLM (optional -- enables AI analysis and richer market seeds)
 
 | Variable | Example | Description |
 |----------|---------|-------------|
@@ -463,7 +494,7 @@ Copy `.env.example` to `.env` and configure. All variables are optional unless n
 | `OLLAMA_URL` | `http://localhost:11434` | Local Ollama URL (zero-cloud fallback) |
 | `OLLAMA_MODEL` | `qwen3:8b` | Local model name |
 
-#### Data Source API Keys (optional — more keys = more sources)
+#### Data Source API Keys (optional -- more keys = more sources)
 
 | Variable | Source | Free? |
 |----------|--------|:-----:|
@@ -480,7 +511,7 @@ Copy `.env.example` to `.env` and configure. All variables are optional unless n
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `NEXTAUTH_SECRET` | | **Required** — random secret for session signing |
+| `NEXTAUTH_SECRET` | | **Required** -- random secret for session signing |
 | `CRON_SECRET` | | Secret for auto-seed/resolve API calls |
 | `NEXT_PUBLIC_CHAOS_URL` | | Public CHAOS API URL (for client-side SSE) |
 | `NEXT_PUBLIC_REOWN_PROJECT_ID` | | WalletConnect project ID (for Web3 login) |
@@ -509,7 +540,8 @@ Copy `.env.example` to `.env` and configure. All variables are optional unless n
 Companion prediction market PWA at [`newspredict/`](newspredict/). Built with Next.js, LMSR scoring, Web3 wallet integration (BSC), and Drizzle ORM. Consumes the CHAOS public API to generate and resolve prediction markets from real-world intelligence data.
 
 - **Economic model**: [`docs/economics.md`](docs/economics.md) | [`docs/economics-zh.md`](docs/economics-zh.md)
-- **Smart contracts**: ChaosToken (C.H.A.O.S.) + ChaosPredictionMarket — deployed on BSC mainnet and testnet, verified on BscScan
+- **Smart contracts**: ChaosToken (C.H.A.O.S.) + ChaosPredictionMarket -- deployed on BSC mainnet and testnet, verified on BscScan
+- **Product guide**: [`newspredict/docs/usage-guide.md`](newspredict/docs/usage-guide.md)
 
 ---
 
